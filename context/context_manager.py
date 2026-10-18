@@ -31,9 +31,7 @@ class ContextManager:
 
             if role == "assistant":
                 if pending:
-                    raise ValueError(
-                        "工具结果尚未返回，就出现下一条 assistant 消息"
-                    )
+                    raise ValueError("工具结果尚未返回，就出现下一条 assistant 消息")
 
                 for call in message.get("tool_calls") or []:
                     call_id = call.get("id")
@@ -51,16 +49,12 @@ class ContextManager:
                 call_id = message.get("tool_call_id")
 
                 if call_id not in pending:
-                    raise ValueError(
-                        "存在没有对应调用的 tool 消息"
-                    )
+                    raise ValueError("存在没有对应调用的 tool 消息")
 
                 pending.remove(call_id)
 
         if pending:
-            raise ValueError(
-                "工具调用缺少结果，暂不能发送给模型"
-            )
+            raise ValueError("工具调用缺少结果，暂不能发送给模型")
 
     def build(self, messages: list[dict]) -> list[dict]:
         """构建请求上下文，不修改 Session 的完整历史。"""
@@ -92,10 +86,7 @@ class ContextManager:
                 turns[-1].append(message)
 
             else:
-                raise ValueError(
-                    "历史必须从 user 消息开始，"
-                    "且只能包含 user/assistant/tool"
-                )
+                raise ValueError("历史必须从 user 消息开始，""且只能包含 user/assistant/tool")
 
         if not turns:
             raise ValueError("至少需要一条用户消息")
@@ -109,10 +100,7 @@ class ContextManager:
         current_messages = [system] + turns[-1]
 
         if self._chars(current_messages) > self.max_chars:
-            raise ValueError(
-                "当前轮次超过上下文预算，"
-                "请缩小任务或工具输出"
-            )
+            raise ValueError("当前轮次超过上下文预算，""请缩小任务或工具输出")
 
         # 4. 从近到远添加完整历史轮次
         for older in reversed(turns[:-1]):
