@@ -21,6 +21,7 @@ class SessionManager:
             raise ValueError("Session ID 格式不正确")
         return self.directory / f"{session_id}.json"
 
+    #创建
     def create(self, system_prompt: str) -> str:
         session_id = uuid.uuid4().hex
         self.save(session_id, [
@@ -28,6 +29,7 @@ class SessionManager:
         ])
         return session_id
 
+    #读取
     def load(self, session_id: str) -> list[dict]:
         path = self._file(session_id)
 
@@ -48,6 +50,7 @@ class SessionManager:
 
         return data["messages"]
 
+    #保存
     def save(self, session_id: str, messages: list[dict]) -> None:
         path = self._file(session_id)
         payload = {
