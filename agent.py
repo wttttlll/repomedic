@@ -1,9 +1,5 @@
-
 import json
 import os
-import subprocess
-import re
-import sys
 import shutil
 import uuid
 from pathlib import Path
@@ -11,19 +7,22 @@ from pathlib import Path
 from sessions.session_manager import SessionManager
 from context.context_manager import ContextManager
 from context.context_compressor import ContextCompressor
-
+from integrations.test_runner import run_unittest
+from skills.skill_loader import SkillLoader,format_skill_context
 
 BASE = Path(__file__).resolve().parent
+SKILL_LOADER = SkillLoader(BASE / "skills")
 ROOT = (BASE / "demo_repo").resolve()
 MAX_FILE_BYTES = 32 * 1024
 MAX_STEPS = 10
 MAX_REPAIR_ATTEMPTS = 3
+MCP_REMOTE_TOOLS = frozenset({"list_files", "read_file", "run_tests"})
 # 旧 ContextManager：负责选择最近历史
 CONTEXT = ContextManager(max_turns=4,max_chars=37_000)
 
 # 新 ContextCompressor：负责压缩被裁剪的历史
 COMPRESSOR = ContextCompressor(
-    memory_dir=BASE / "summary_data",
+    memory_dir=BASE / "data" / "summary_data",
     selector=CONTEXT,
     total_budget=40_000,
     max_summary_chars=1_200,
@@ -122,52 +121,57 @@ TOOLS = [
 
 
 # 2.1 结构化测试结果：由 Python 判断结果，模型只负责分析
-def execute_tests() -> dict:
-    if not (ROOT / "test_calc.py").is_file():
-        raise ValueError("找不到 test_calc.py")
-
-    # 只传递部分系统环境变量，避免泄露 DEEPSEEK_API_KEY。
-    # 注意：这里仍非 Sandbox，只允许运行自己可信任的 demo_repo。
-    allowed_env = ("PATH", "SystemRoot", "WINDIR", "TEMP", "TMP")
-    safe_env = {k: os.environ[k] for k in allowed_env if k in os.environ}
-    safe_env["PYTHONIOENCODING"] = "utf-8"
-
-    try:
-        proc = subprocess.run(
-            [
-                sys.executable, "-I", "-B", "-m", "unittest",
-                "discover", "-s", str(ROOT), "-p", "test_calc.py", "-v",
-            ],
-            cwd=str(ROOT),
-            env=safe_env,
-            stdin=subprocess.DEVNULL,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=10,
-        )
-    except subprocess.TimeoutExpired:
+def _checked_test_result(value: object) -> dict:
+    """验证执行器的结构化结果；没有可靠测试证据时一律不认定 PASS。"""
+    def error(message: str) -> dict:
         return {
-            "status": "TIMEOUT",
+            "status": "ERROR",
             "passed": False,
             "returncode": None,
             "test_count": 0,
-            "output": "测试超时：超过 10 秒",
+            "output": message,
         }
 
-    log = ((proc.stdout or "") + "\n" + (proc.stderr or "")).strip()
-    matched = re.search(r"\bRan\s+(\d+)\s+tests?\s+in\b", log)
-    count = int(matched.group(1)) if matched else 0
+    if not isinstance(value, dict):
+        return error("测试执行器未返回结构化字典结果")
 
-    passed = proc.returncode == 0 and count > 0
+    status = value.get("status")
+    code = value.get("returncode")
+    count = value.get("test_count")
+    passed = value.get("passed")
+    output = value.get("output", "")
+
+    if status not in {"PASS", "FAIL", "ERROR", "TIMEOUT"}:
+        return error("未知测试状态：" + str(status))
+    if not isinstance(count, int) or isinstance(count, bool) or count < 0:
+        return error("测试数量字段无效：" + str(count))
+    if not isinstance(output, str):
+        return error("测试日志不是字符串")
+    if code is not None and (not isinstance(code, int) or isinstance(code, bool)):
+        return error("退出码字段无效")
+
+    # PASS 必须同时具备正退出码、非零测试数量和显式 passed=True。
+    if status == "PASS" and not (passed is True and code == 0 and count > 0):
+        return error("测试结果声称 PASS，但缺少真实通过证据：" + output[:2000])
+
+    if status == "FAIL" and count == 0:
+        return error("没有执行任何单元测试，无法认定为代码断言失败：" + output[:2000])
+    if status != "PASS" and passed is True:
+        return error("测试状态与 passed 字段矛盾")
+
     return {
-        "status": "PASS" if passed else "FAIL",
-        "passed": passed,
-        "returncode": proc.returncode,
+        "status": status,
+        "passed": status == "PASS",
+        "returncode": code,
         "test_count": count,
-        "output": log[:6000],
+        "output": output,
     }
+
+
+def execute_tests() -> dict:
+    """统一走 MCP 共用的 Docker 执行器；Docker 故障不得退回宿主机。"""
+    return _checked_test_result(run_unittest(ROOT))
+
 
 
 def restore_original(content: bytes) -> None:
@@ -264,7 +268,7 @@ def run_tool(name: str, args: dict, allow_write: bool = False) -> str:
             raise ValueError("目标必须是存在的普通文件")
 
         # 先创建独立备份，方便回滚
-        backup_dir = BASE / "backups"
+        backup_dir = BASE / "data" / "backups"
         backup_dir.mkdir(exist_ok=True)
 
         backup = backup_dir / f"calc_{uuid.uuid4().hex}.bak"
@@ -287,26 +291,48 @@ def run_tool(name: str, args: dict, allow_write: bool = False) -> str:
     raise ValueError(f"未知工具: {name}")
 
 
-# 3. 核心：Agent Loop + Verification Loop
+# 3. 核心：Agent Loop + Verification Loop V2
 def run_agent(
     task: str,
     client,
     sessions: SessionManager,
     session_id: str,
     allow_write: bool = False,
+    mcp_tools: list[dict] | None = None,
+    mcp_executor=None,
 ) -> str:
+
+    if (mcp_tools is None) != (mcp_executor is None):
+        raise ValueError("MCP 工具定义和执行器必须同时提供")
 
     messages = sessions.load(session_id)
     if not messages or messages[0].get("role") != "system":
         raise ValueError("Session 缺少 system 消息")
     messages[0]["content"] = SYSTEM_PROMPT
     messages.append({"role": "user", "content": task})
+    # 根据当前用户任务匹配 Skill
+    active_skill = SKILL_LOADER.select(task)
+
+    skill_context = None
+
+    if active_skill is not None:
+        skill_context = format_skill_context(active_skill)
+        print(f"[Skill] 加载： {active_skill.name}")
+    else:
+        print("[Skill] 无匹配的skill")
 
     # 只读模式下模型看不到 write_file，Python 工具本身也会再次校验授权
     available_tools = [
         tool for tool in TOOLS
-        if allow_write or tool["function"]["name"] != "write_file"
+        if (allow_write or tool["function"]["name"] != "write_file")
+        and (mcp_tools is None or tool["function"]["name"] not in MCP_REMOTE_TOOLS)
     ]
+    if mcp_tools is not None:
+        # MCP 负责只读工具；run_tests/write_file 仍由原 Python 控制器执行。
+        discovered_names = {item["function"]["name"] for item in mcp_tools}
+        if discovered_names != MCP_REMOTE_TOOLS:
+            raise ValueError(f"MCP 工具不匹配: {discovered_names}")
+        available_tools.extend(mcp_tools)
 
     original_bytes = None
     write_attempts = 0
@@ -342,6 +368,20 @@ def run_agent(
             except Exception as exc:
                 print(f"[Compression] 摘要失败，回退裁剪：{exc}")
                 context_messages = CONTEXT.build(messages)
+
+            if skill_context is not None:
+                if (
+                        not context_messages
+                        or context_messages[0].get("role") != "system"
+                ):
+                    raise RuntimeError("缺少 system 消息")
+
+                context_messages = list(context_messages)
+
+                context_messages[0] = {
+                    **context_messages[0],
+                    "content": (context_messages[0]["content"]+ "\n\n"+ skill_context),
+                }
 
             print(
                 f"[Context] 完整历史: {len(messages)} 条，"
@@ -429,14 +469,16 @@ def run_agent(
             })
 
             limit_reached = False
+            infrastructure_issue = None
             for call in calls:
                 name = call.function.name
                 success = False
 
                 if limit_reached:
                     tool_output = (
-                        "工具未执行：已达到最大修复次数，"
-                        "系统即将回滚当前修改。"
+                        "工具未执行：Docker 验证环境异常，系统即将回滚当前修改。"
+                        if infrastructure_issue is not None
+                        else "工具未执行：已达到最大修复次数，系统即将回滚当前修改。"
                     )
                 else:
                     try:
@@ -457,9 +499,12 @@ def run_agent(
                                     raise ValueError("calc.py 必须是普通文件")
                                 original_bytes = target.read_bytes()
 
-                        tool_output = run_tool(
-                            name, args, allow_write=allow_write
-                        )
+                        if mcp_executor is not None and name in MCP_REMOTE_TOOLS:
+                            tool_output = mcp_executor(name, args)
+                        else:
+                            tool_output = run_tool(
+                                name, args, allow_write=allow_write
+                            )
                         success = True
 
                         if name == "write_file":
@@ -477,6 +522,7 @@ def run_agent(
                                     "test_count": 0,
                                     "output": f"运行测试失败：{exc}",
                                 }
+                            last_test = _checked_test_result(last_test)
                             verified_passed = last_test["passed"]
                             print(
                                 f"[Verification] 第 {write_attempts}/"
@@ -486,15 +532,30 @@ def run_agent(
                                 "\n[Python 自动验证]\n"
                                 + json.dumps(last_test, ensure_ascii=False)
                             )
-                            if (
+                            if last_test["status"] in {"ERROR", "TIMEOUT"}:
+                                infrastructure_issue = last_test["status"]
+                                limit_reached = True
+                            elif (
                                 not verified_passed
                                 and write_attempts >= MAX_REPAIR_ATTEMPTS
                             ):
                                 limit_reached = True
 
                         elif name == "run_tests" and wrote_file:
-                            last_test = json.loads(tool_output)
+                            # MCP 返回的测试结果也要被验证；不能保留旧的 PASS。
+                            try:
+                                received = (
+                                    json.loads(tool_output)
+                                    if isinstance(tool_output, str)
+                                    else tool_output
+                                )
+                            except (ValueError, TypeError):
+                                received = None
+                            last_test = _checked_test_result(received)
                             verified_passed = last_test["passed"]
+                            if last_test["status"] in {"ERROR", "TIMEOUT"}:
+                                infrastructure_issue = last_test["status"]
+                                limit_reached = True
 
                     except (ValueError, OSError, TypeError) as exc:
                         tool_output = f"工具错误: {exc}"
@@ -512,6 +573,16 @@ def run_agent(
             sessions.save(session_id, messages)
 
             if limit_reached:
+                if infrastructure_issue is not None:
+                    return finish(
+                        "【验证环境异常：修复未完成】\n"
+                        + rollback(
+                            f"测试环境返回 {infrastructure_issue}，"
+                            "不能据此认定代码存在 Bug"
+                        )
+                        + "\n最后一次测试结果：\n"
+                        + json.dumps(last_test, ensure_ascii=False)
+                    )
                 return finish(
                     "【自动修复失败】\n"
                     + rollback(f"连续 {write_attempts} 次修改未通过测试")
@@ -541,6 +612,8 @@ def run_agent(
 
 # 4. 主程序
 if __name__ == "__main__":
+    import asyncio
+    from integrations.mcp_bridge import run_agent_with_mcp
 
     # 保留你原来的 apikey 环境变量
     key = os.getenv("apikey") or os.getenv("DEEPSEEK_API_KEY")
@@ -556,7 +629,7 @@ if __name__ == "__main__":
     )
 
     # 创建 Session 管理器
-    sessions = SessionManager(BASE / "session_data")
+    sessions = SessionManager(BASE / "data" / "session_data")
 
     # 新建或恢复 Session
     session_id = input("请输入旧 Session ID（直接回车创建新会话）：").strip()
@@ -596,11 +669,22 @@ if __name__ == "__main__":
             continue
 
         try:
-            result = run_agent(
-                task, client, sessions, session_id,
+            # MCP 连接在整次 Agent 任务期间保持有效。
+            # run_agent 本身仍为同步函数，因此原先的 10 个单元测试无需重写。
+            result = asyncio.run(run_agent_with_mcp(
+                task=task,
+                llm_client=client,
+                sessions=sessions,
+                session_id=session_id,
                 allow_write=(mode == "2"),
-            )
+                run_agent_fn=run_agent,
+                server_path=BASE / "integrations" / "mcp_server.py",
+            ))
             print("\nAgent 最终回答：")
             print(result)
         except Exception as exc:
-            print(f"Agent 运行失败：{type(exc).__name__}: {exc}")
+            import traceback
+
+            print("\n========== 完整错误日志 ==========")
+            traceback.print_exception(exc)
+            print("==================================")
