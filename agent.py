@@ -3,12 +3,13 @@ import os
 import shutil
 import uuid
 from pathlib import Path
-from hooks.hook_manager import HookManager, HookDenied
-from sessions.session_manager import SessionManager
-from context.context_manager import ContextManager
+
 from context.context_compressor import ContextCompressor
+from context.context_manager import ContextManager
+from hooks.hook_manager import HookManager
 from integrations.test_runner import run_unittest
-from skills.skill_loader import SkillLoader,format_skill_context
+from sessions.session_manager import SessionManager
+from skills.skill_loader import SkillLoader, format_skill_context
 from subagents.test_analyst import TestAnalystSubAgent
 
 BASE = Path(__file__).resolve().parent
@@ -19,10 +20,10 @@ MAX_FILE_BYTES = 32 * 1024
 MAX_STEPS = 10
 MAX_REPAIR_ATTEMPTS = 3
 MCP_REMOTE_TOOLS = frozenset({"list_files", "read_file", "run_tests"})
-# 旧 ContextManager：负责选择最近历史
+# ContextManager：负责选择最近历史
 CONTEXT = ContextManager(max_turns=4,max_chars=37_000)
 
-# 新 ContextCompressor：负责压缩被裁剪的历史
+# ContextCompressor：负责压缩被裁剪的历史
 COMPRESSOR = ContextCompressor(
     memory_dir=BASE / "data" / "summary_data",
     selector=CONTEXT,
@@ -50,6 +51,72 @@ SYSTEM_PROMPT = (
     "才能作为修改成功的最终证据。"
 )
 
+
+#  结构化测试结果：由 Python 判断结果，模型只负责分析
+def _checked_test_result(value: object) -> dict:
+    """验证执行器的结构化结果；没有可靠测试证据时一律不认定 PASS。"""
+    def error(message: str) -> dict:
+        return {
+            "status": "ERROR",
+            "passed": False,
+            "returncode": None,
+            "test_count": 0,
+            "output": message,
+        }
+
+    if not isinstance(value, dict):
+        return error("测试执行器未返回结构化字典结果")
+
+    status = value.get("status")
+    code = value.get("returncode")
+    count = value.get("test_count")
+    passed = value.get("passed")
+    output = value.get("output", "")
+
+    if status not in {"PASS", "FAIL", "ERROR", "TIMEOUT"}:
+        return error("未知测试状态：" + str(status))
+    if not isinstance(count, int) or isinstance(count, bool) or count < 0:
+        return error("测试数量字段无效：" + str(count))
+    if not isinstance(output, str):
+        return error("测试日志不是字符串")
+    if code is not None and (not isinstance(code, int) or isinstance(code, bool)):
+        return error("退出码字段无效")
+
+    # PASS 必须同时具备正退出码、非零测试数量和显式 passed=True。
+    if status == "PASS" and not (passed is True and code == 0 and count > 0):
+        return error("测试结果声称 PASS，但缺少真实通过证据：" + output[:2000])
+    if status == "FAIL" and count == 0:
+        return error("没有执行任何单元测试，无法认定为代码断言失败：" + output[:2000])
+    if status != "PASS" and passed is True:
+        return error("测试状态与 passed 字段矛盾")
+
+    return {
+        "status": status,
+        "passed": status == "PASS",
+        "returncode": code,
+        "test_count": count,
+        "output": output,
+    }
+
+
+def execute_tests() -> dict:
+    """统一走 MCP 共用的 Docker 执行器；Docker 故障不得退回宿主机。"""
+    return _checked_test_result(run_unittest(ROOT))
+
+
+
+def restore_original(content: bytes) -> None:
+    """原子恢复本次任务首次写入之前的 calc.py。"""
+    target = ROOT / "calc.py"
+    if not target.is_file() or target.is_symlink():
+        raise RuntimeError("目标文件缺失或变为符号链接，不能安全回滚")
+
+    temporary = ROOT / f".rollback_{uuid.uuid4().hex}.tmp"
+    try:
+        temporary.write_bytes(content)
+        os.replace(temporary, target)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 # 1. 定义 Agent 可以调用的工具
 TOOLS = [
@@ -154,75 +221,6 @@ TOOLS = [
     },
 ]
 
-
-# 2.1 结构化测试结果：由 Python 判断结果，模型只负责分析
-def _checked_test_result(value: object) -> dict:
-    """验证执行器的结构化结果；没有可靠测试证据时一律不认定 PASS。"""
-    def error(message: str) -> dict:
-        return {
-            "status": "ERROR",
-            "passed": False,
-            "returncode": None,
-            "test_count": 0,
-            "output": message,
-        }
-
-    if not isinstance(value, dict):
-        return error("测试执行器未返回结构化字典结果")
-
-    status = value.get("status")
-    code = value.get("returncode")
-    count = value.get("test_count")
-    passed = value.get("passed")
-    output = value.get("output", "")
-
-    if status not in {"PASS", "FAIL", "ERROR", "TIMEOUT"}:
-        return error("未知测试状态：" + str(status))
-    if not isinstance(count, int) or isinstance(count, bool) or count < 0:
-        return error("测试数量字段无效：" + str(count))
-    if not isinstance(output, str):
-        return error("测试日志不是字符串")
-    if code is not None and (not isinstance(code, int) or isinstance(code, bool)):
-        return error("退出码字段无效")
-
-    # PASS 必须同时具备正退出码、非零测试数量和显式 passed=True。
-    if status == "PASS" and not (passed is True and code == 0 and count > 0):
-        return error("测试结果声称 PASS，但缺少真实通过证据：" + output[:2000])
-
-    if status == "FAIL" and count == 0:
-        return error("没有执行任何单元测试，无法认定为代码断言失败：" + output[:2000])
-    if status != "PASS" and passed is True:
-        return error("测试状态与 passed 字段矛盾")
-
-    return {
-        "status": status,
-        "passed": status == "PASS",
-        "returncode": code,
-        "test_count": count,
-        "output": output,
-    }
-
-
-def execute_tests() -> dict:
-    """统一走 MCP 共用的 Docker 执行器；Docker 故障不得退回宿主机。"""
-    return _checked_test_result(run_unittest(ROOT))
-
-
-
-def restore_original(content: bytes) -> None:
-    """原子恢复本次任务首次写入之前的 calc.py。"""
-    target = ROOT / "calc.py"
-    if not target.is_file() or target.is_symlink():
-        raise RuntimeError("目标文件缺失或变为符号链接，不能安全回滚")
-
-    temporary = ROOT / f".rollback_{uuid.uuid4().hex}.tmp"
-    try:
-        temporary.write_bytes(content)
-        os.replace(temporary, target)
-    finally:
-        temporary.unlink(missing_ok=True)
-
-
 # 2. Python 实现工具的实际功能
 def run_tool(name: str, args: dict, allow_write: bool = False) -> str:
     if not isinstance(args, dict):
@@ -231,10 +229,8 @@ def run_tool(name: str, args: dict, allow_write: bool = False) -> str:
     if name == "list_files":
         if args:
             raise ValueError("list_files 不接受参数")
-
         if not ROOT.is_dir():
             raise ValueError("demo_repo 目录不存在")
-
         return json.dumps(
             sorted(
                 p.name + ("/" if p.is_dir() else "")
@@ -303,24 +299,17 @@ def run_tool(name: str, args: dict, allow_write: bool = False) -> str:
         # 先创建独立备份，方便回滚
         backup_dir = BASE / "data" / "backups"
         backup_dir.mkdir(parents=True,exist_ok=True)
-
         backup = backup_dir / f"calc_{uuid.uuid4().hex}.bak"
         shutil.copy2(target, backup)
 
         # 同目录临时文件 + 原子替换
         temp = ROOT / f".calc_{uuid.uuid4().hex}.tmp"
-
         try:
             temp.write_bytes(data)
             os.replace(temp, target)
         finally:
             temp.unlink(missing_ok=True)
-
-        return (
-            f"成功修改 {path}。"
-            f"备份位置: {backup}"
-            "。请立即运行 run_tests 验证修改。"
-        )
+        return (f"成功修改 {path}。备份位置: {backup}。请立即运行 run_tests 验证修改。")
     raise ValueError(f"未知工具: {name}")
 
 
@@ -335,14 +324,12 @@ def run_agent(
     mcp_executor=None,
 ) -> str:
 
-
     # 根据当前用户任务加载 Session
     messages = sessions.load(session_id)
     if not messages or messages[0].get("role") != "system":
         raise ValueError("Session 缺少 system 消息")
     messages[0]["content"] = SYSTEM_PROMPT
     messages.append({"role": "user", "content": task})
-
 
     # 根据当前用户任务匹配 Skill
     active_skill = SKILL_LOADER.select(task)
@@ -424,14 +411,9 @@ def run_agent(
                 context_messages = CONTEXT.build(messages)
 
             if skill_context is not None:
-                if (
-                        not context_messages
-                        or context_messages[0].get("role") != "system"
-                ):
+                if (not context_messages or context_messages[0].get("role") != "system"):
                     raise RuntimeError("缺少 system 消息")
-
                 context_messages = list(context_messages)
-
                 context_messages[0] = {
                     **context_messages[0],
                     "content": (context_messages[0]["content"]+ "\n\n"+ skill_context),
@@ -450,10 +432,7 @@ def run_agent(
                 extra_body={"thinking": {"type": "disabled"}},
             )
             if response.usage is not None:
-                print(
-                    f"[Token] 输入: {response.usage.prompt_tokens}，"
-                    f"输出: {response.usage.completion_tokens}"
-                )
+                print(f"[Token] 输入: {response.usage.prompt_tokens}，输出: {response.usage.completion_tokens}")
 
             choice = response.choices[0]
             message = choice.message
@@ -461,9 +440,7 @@ def run_agent(
 
             if not calls:
                 if choice.finish_reason != "stop":
-                    raise RuntimeError(
-                        f"模型未正常完成：{choice.finish_reason}"
-                    )
+                    raise RuntimeError(f"模型未正常完成：{choice.finish_reason}")
 
                 answer = message.content or "模型没有返回文本"
                 if original_bytes is not None and not verified_passed:
@@ -480,7 +457,7 @@ def run_agent(
                         messages.append({
                             "role": "user",
                             "content": (
-                                "【Agent验证控制器】上次修改没有通过测试。"
+                                "[Agent验证控制器]上次修改没有通过测试。"
                                 "请根据下列真实日志再次尝试修复，不要只口头宣布成功。"
                                 "如果无法修复，请明确说明。\n"
                                 + json.dumps(last_test, ensure_ascii=False)
@@ -491,7 +468,7 @@ def run_agent(
                         continue
 
                     return finish(
-                        "【修复失败】\n"
+                        "[修复失败]\n"
                         + rollback("模型提前结束或不再提供修复方案")
                         + "\n最后一次测试结果：\n"
                         + json.dumps(last_test, ensure_ascii=False)
@@ -499,11 +476,11 @@ def run_agent(
 
                 if wrote_file and verified_passed:
                     return finish(
-                        f"【Python 验证成功】共修改 {write_attempts} 次，"
+                        f"[Python 验证成功]共修改 {write_attempts} 次，"
                         f"通过 {last_test['test_count']} 个单元测试，退出码为 0。\n\n"
                         + answer
                     )
-                return finish("【本轮没有修改文件】\n" + answer if allow_write else answer)
+                return finish("[本轮没有修改文件]\n" + answer if allow_write else answer)
 
             # 先记录模型整批 Tool Calls，随后必须回复每个 call_id
             messages.append({
@@ -576,15 +553,10 @@ def run_agent(
 
                                 # 每次用户任务最多进行 2 次委派；失败尝试也计数
                                 if delegation_count >= MAX_DELEGATIONS_PER_TASK:
-                                    raise ValueError(
-                                        "本次任务已达到最大子 Agent 委派次数"
-                                    )
+                                    raise ValueError("本次任务已达到最大子 Agent 委派次数")
 
                                 delegation_count += 1
-                                print(
-                                    f"[Delegation] 第 {delegation_count}/"
-                                    f"{MAX_DELEGATIONS_PER_TASK} 次委派"
-                                )
+                                print(f"[Delegation] 第 {delegation_count}/{MAX_DELEGATIONS_PER_TASK} 次委派")
 
                                 # 禁用 SDK 内置重试，避免放大请求延迟；
                                 # 兼容不提供 with_options 的模拟测试客户端
@@ -649,7 +621,7 @@ def run_agent(
                                     ),
                                 }
 
-                            # 使用原有 Verification Controller 校验
+                            # 5.使用原有 Verification Controller 校验
                             last_test = _checked_test_result(last_test)
 
                             verified_passed = last_test["passed"]
@@ -727,7 +699,7 @@ def run_agent(
             if limit_reached:
                 if infrastructure_issue is not None:
                     return finish(
-                        "【验证环境异常：修复未完成】\n"
+                        "[验证环境异常：修复未完成]\n"
                         + rollback(
                             f"测试环境返回 {infrastructure_issue}，"
                             "不能据此认定代码存在 Bug"
@@ -736,7 +708,7 @@ def run_agent(
                         + json.dumps(last_test, ensure_ascii=False)
                     )
                 return finish(
-                    "【自动修复失败】\n"
+                    "[自动修复失败]\n"
                     + rollback(f"连续 {write_attempts} 次修改未通过测试")
                     + "\n最后一次测试结果：\n"
                     + json.dumps(last_test, ensure_ascii=False)
@@ -770,7 +742,7 @@ if __name__ == "__main__":
     key = os.getenv("apikey") or os.getenv("DEEPSEEK_API_KEY")
 
     if not key:
-        raise SystemExit("请先设置 apikey 或 DEEPSEEK_API_KEY 环境变量")
+        raise SystemExit("请先设置 apikey 环境变量")
 
     from openai import OpenAI
 
@@ -821,7 +793,6 @@ if __name__ == "__main__":
 
         try:
             # MCP 连接在整次 Agent 任务期间保持有效。
-            # run_agent 本身仍为同步函数，因此原先的 10 个单元测试无需重写。
             result = asyncio.run(run_agent_with_mcp(
                 task=task,
                 llm_client=client,
