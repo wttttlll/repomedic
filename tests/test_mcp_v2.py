@@ -1,4 +1,4 @@
-"""MCP V2 最小回归测试（不调用 DeepSeek / 不需要启动 MCP Server）。"""
+"""MCP  最小回归测试（不调用 DeepSeek / 不需要启动 MCP Server）。"""
 
 import json
 import tempfile
