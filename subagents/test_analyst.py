@@ -1,4 +1,4 @@
-"""RepoMedic: 独立的只读 Test Analyst 子 Agent（V2）。"""
+"""RepoMedic: 独立的只读 Test Analyst 子 Agent。"""
 
 import copy
 import json
