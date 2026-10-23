@@ -64,7 +64,7 @@ Main Agent → HookManager → MCP Bridge/Client → MCP Server
                                             └── run_tests → Docker Test Runner
 ```
 
-在单元测试和 Benchmark V1 模式下，`run_agent()` 也能使用本地 `run_tool()`。这两个执行入口不能误写成“Benchmark V1 也测过 MCP”：**Benchmark V1 当前绕过 MCP Server**。
+在单元测试和 Benchmark  模式下，`run_agent()` 也能使用本地 `run_tool()`。这两个执行入口不能误写成“Benchmark V1 也测过 MCP”：**Benchmark V1 当前绕过 MCP Server**。
 
 ## 3. 写入路径：Verification Controller
 
