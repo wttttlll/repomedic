@@ -1,5 +1,5 @@
 
-"""本地 JSON Session 存储：创建、读取、原子保存。"""
+"""本地 JSON Session 的存储：创建、读取、原子保存。"""
 
 import json
 import os
