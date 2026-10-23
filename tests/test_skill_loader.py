@@ -58,7 +58,8 @@ class SkillLoaderTests(unittest.TestCase):
 
     def test_context_is_guidance_not_tool_grant(self):
         result = format_skill_context(self.loader.select("@repo-debug"))
-        self.assertIn("does NOT grant write", result)
+        self.assertIn("不授予写入权限", result)
+        self.assertIn("Python 运行时强制执行所有安全规则", result)
         self.assertIn("# Debug workflow", result)
         self.assertNotIn("description: Analyze", result)
 

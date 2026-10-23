@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 
 class HookDenied(PermissionError):
     """工具调用被 Hook 拒绝。"""
@@ -34,3 +35,29 @@ class HookManager:
             raise ValueError("不是有效的验证失败状态")
 
         self.logger(f"[OnVerificationFail] {status}")
+
+
+    @contextmanager
+    def guard(self, name, arguments, *, allow_write):
+        """
+        统一管理工具执行前后的 Hook。
+        PreToolUse:
+            执行工具前检查权限。
+        PostToolUse:
+            工具结束后记录成功或异常。
+        """
+        # 1. 执行前检查
+        self.pre_tool_use(name,arguments,allow_write=allow_write)
+
+        try:
+            # 2. 执行真实工具
+            yield
+
+        except Exception:
+            # 3. 工具执行发生异常
+            self.post_tool_use(name,success=False)
+            raise
+
+        else:
+            # 4. 工具正常返回
+            self.post_tool_use(name,success=True)
