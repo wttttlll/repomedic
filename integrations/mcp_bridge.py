@@ -2,7 +2,7 @@
 
 MCP Client 在 asyncio 事件循环中运行；原来的同步 run_agent 在工作线程中
 运行。线程通过 run_coroutine_threadsafe 把工具调用交给 MCP Client 执行，
-因此 Session、Context 和 Verification 的代码可以原样复用。
+因此 Session、Context和 Verification 的代码可以原样复用。
 """
 
 import asyncio
