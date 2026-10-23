@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2240" height="1260" viewBox="0 0 2240 1260" role="img" aria-label="RepoMedic 中文 Agent 系统架构图">
+<defs>
+ <filter id="cardShadow" x="-15%" y="-15%" width="130%" height="150%">
+   <feDropShadow dx="0" dy="7" stdDeviation="13" flood-color="#173A5C" flood-opacity="0.08"/>
+ </filter>
+ <marker id="arrowBlue" markerWidth="12" markerHeight="12" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+  <path d="M0,0 L10,5 L0,10 Z" fill="#4E7FBD"/>
+ </marker>
+ <marker id="arrowGray" markerWidth="12" markerHeight="12" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+  <path d="M0,0 L10,5 L0,10 Z" fill="#8CA0B7"/>
+ </marker>
+</defs>
+<rect width="2240" height="1260" fill="#F7FAFD"/>
+
+<rect x="88" y="62" width="11" height="78" rx="5" ry="5" fill="#4E7FBD" stroke="#4E7FBD" stroke-width="0"/>
+<text x="125" y="105" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="52" font-weight="760" fill="#1E334C" text-anchor="start" letter-spacing="0">RepoMedic｜AI Agent 系统架构</text>
+<text x="125" y="153" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="25" font-weight="400" fill="#5F7083" text-anchor="start" letter-spacing="0">自主 Agent Loop · MCP 工具调用 · Docker 测试验证 · Sub-agent 协作</text>
+<text x="2130" y="99" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="22" font-weight="650" fill="#4E7FBD" text-anchor="end" letter-spacing="0">架构总览  /  V1</text>
+<rect x="105" y="222" width="455" height="155" rx="22" ry="22" fill="#FFFFFF" stroke="#DDE5ED" stroke-width="1.8" filter="url(#cardShadow)"/>
+<rect x="105" y="222" width="12" height="155" rx="6" ry="6" fill="#9AABBD" stroke="#9AABBD" stroke-width="0"/>
+<text x="144" y="274" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="35" font-weight="750" fill="#1E334C" text-anchor="start" letter-spacing="0">开发者 / CLI</text>
+<text x="144" y="326" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="23" font-weight="450" fill="#5F7083" text-anchor="start" letter-spacing="0">输入任务 · 选择只读/授权模式</text>
+<rect x="846" y="202" width="548" height="195" rx="25" ry="25" fill="#E8F1FF" stroke="#8BAED7" stroke-width="2" filter="url(#cardShadow)"/>
+<text x="890" y="267" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="43" font-weight="760" fill="#214E80" text-anchor="start" letter-spacing="0">主 Agent</text>
+<text x="890" y="319" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="29" font-weight="680" fill="#1E334C" text-anchor="start" letter-spacing="0">Agent Loop · 工具分发</text>
+<text x="890" y="361" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="21" font-weight="450" fill="#5F7083" text-anchor="start" letter-spacing="0">会话管理 / 决策编排 / 验证状态</text>
+<rect x="1690" y="222" width="440" height="155" rx="22" ry="22" fill="#FFFFFF" stroke="#DDE5ED" stroke-width="1.8" filter="url(#cardShadow)"/>
+<rect x="1690" y="222" width="12" height="155" rx="6" ry="6" fill="#4E7FBD" stroke="#4E7FBD" stroke-width="0"/>
+<text x="1728" y="274" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="35" font-weight="750" fill="#1E334C" text-anchor="start" letter-spacing="0">DeepSeek 模型</text>
+<text x="1728" y="326" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="23" font-weight="450" fill="#5F7083" text-anchor="start" letter-spacing="0">分析推理 · Tool Calling</text>
+<polyline points="562,299 845,299" stroke="#4E7FBD" stroke-width="4" fill="none" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrowBlue)"/>
+<text x="703" y="280" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="19" font-weight="600" fill="#4E7FBD" text-anchor="middle" letter-spacing="0">任务与授权</text>
+<polyline points="1395,295 1687,295" stroke="#4E7FBD" stroke-width="4" fill="none" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrowBlue)"/>
+<text x="1540" y="276" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="19" font-weight="600" fill="#4E7FBD" text-anchor="middle" letter-spacing="0">模型请求</text>
+<polyline points="1687,324 1397,324" stroke="#8CA0B7" stroke-width="3" fill="none" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrowGray)"/>
+<text x="1540" y="352" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="19" font-weight="500" fill="#5F7083" text-anchor="middle" letter-spacing="0">决策 / 工具调用</text>
+<rect x="775" y="426" width="330" height="67" rx="17" ry="17" fill="#EDF3FA" stroke="#C8D9E9" stroke-width="1.4"/>
+<text x="940" y="468" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="24" font-weight="650" fill="#37618E" text-anchor="middle" letter-spacing="0">会话 · 上下文压缩</text>
+<rect x="1135" y="426" width="332" height="67" rx="17" ry="17" fill="#EDF3FA" stroke="#C8D9E9" stroke-width="1.4"/>
+<text x="1301" y="468" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="24" font-weight="650" fill="#37618E" text-anchor="middle" letter-spacing="0">Skills · repo-debug</text>
+<polyline points="1120,398 1120,521" stroke="#B2C1D1" stroke-width="3" fill="none" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="9 9"/>
+<rect x="733" y="516" width="774" height="107" rx="22" ry="22" fill="#E9F6EE" stroke="#83BCA0" stroke-width="2" filter="url(#cardShadow)"/>
+<text x="1120" y="563" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="34" font-weight="750" fill="#22694D" text-anchor="middle" letter-spacing="0">Python Runtime · Hooks 与工具路由</text>
+<text x="1120" y="602" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="22" font-weight="450" fill="#3F6B56" text-anchor="middle" letter-spacing="0">执行前校验权限  ·  执行后记录结果  ·  Tool Call 只执行一次</text>
+<polyline points="1120,624 1120,662" stroke="#8CA0B7" stroke-width="3" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="415,662 1825,662" stroke="#8CA0B7" stroke-width="3" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+<polyline points="415,662 415,708" stroke="#8CA0B7" stroke-width="3" fill="none" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrowGray)"/>
+<polyline points="1120,662 1120,708" stroke="#8CA0B7" stroke-width="3" fill="none" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrowGray)"/>
+<polyline points="1825,662 1825,708" stroke="#8CA0B7" stroke-width="3" fill="none" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrowGray)"/>
+<rect x="92" y="708" width="625" height="452" rx="23" ry="23" fill="#FFFFFF" stroke="#DFE6EE" stroke-width="1.8" filter="url(#cardShadow)"/>
+<rect x="117" y="737" width="56" height="56" rx="17" ry="17" fill="#4E7FBD" stroke="#4E7FBD" stroke-width="0"/>
+<text x="145" y="775" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="26" font-weight="750" fill="#FFFFFF" text-anchor="middle" letter-spacing="0">01</text>
+<text x="193" y="776" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="32" font-weight="750" fill="#1E334C" text-anchor="start" letter-spacing="0">只读工具与 MCP</text>
+<rect x="119" y="815" width="571" height="83" rx="16" ry="16" fill="#FFFFFF" stroke="#D9E2EB" stroke-width="1.5"/>
+<rect x="119" y="815" width="7" height="83" rx="4" ry="4" fill="#4E7FBD" stroke="#4E7FBD" stroke-width="0"/>
+<text x="145" y="846" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="24" font-weight="700" fill="#1E334C" text-anchor="start" letter-spacing="0">MCP Client / Server</text>
+<text x="145" y="876" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="18" font-weight="400" fill="#5F7083" text-anchor="start" letter-spacing="0">工具发现与协议连接</text>
+<polyline points="405,900 405,916" stroke="#9EB0C1" stroke-width="3" fill="none" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrowGray)"/>
+<rect x="119" y="923" width="571" height="83" rx="16" ry="16" fill="#FFFFFF" stroke="#D9E2EB" stroke-width="1.5"/>
+<rect x="119" y="923" width="7" height="83" rx="4" ry="4" fill="#4E7FBD" stroke="#4E7FBD" stroke-width="0"/>
+<text x="145" y="954" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="24" font-weight="700" fill="#1E334C" text-anchor="start" letter-spacing="0">只读工具调用</text>
+<text x="145" y="984" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="18" font-weight="400" fill="#5F7083" text-anchor="start" letter-spacing="0">list_files / read_file / run_tests</text>
+<polyline points="405,1008 405,1024" stroke="#9EB0C1" stroke-width="3" fill="none" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrowGray)"/>
+<rect x="119" y="1031" width="571" height="83" rx="16" ry="16" fill="#FFFFFF" stroke="#D9E2EB" stroke-width="1.5"/>
+<rect x="119" y="1031" width="7" height="83" rx="4" ry="4" fill="#4E7FBD" stroke="#4E7FBD" stroke-width="0"/>
+<text x="145" y="1062" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="24" font-weight="700" fill="#1E334C" text-anchor="start" letter-spacing="0">仓库读取与 Docker 测试</text>
+<text x="145" y="1092" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="18" font-weight="400" fill="#5F7083" text-anchor="start" letter-spacing="0">以真实日志和退出码作为证据</text>
+<text x="405" y="1140" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="19" font-weight="530" fill="#4E7FBD" text-anchor="middle" letter-spacing="0">只读模式禁止修改任何文件</text>
+<rect x="807" y="708" width="625" height="452" rx="23" ry="23" fill="#FFFFFF" stroke="#DFE6EE" stroke-width="1.8" filter="url(#cardShadow)"/>
+<rect x="832" y="737" width="56" height="56" rx="17" ry="17" fill="#3B8D72" stroke="#3B8D72" stroke-width="0"/>
+<text x="860" y="775" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="26" font-weight="750" fill="#FFFFFF" text-anchor="middle" letter-spacing="0">02</text>
+<text x="908" y="776" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="32" font-weight="750" fill="#1E334C" text-anchor="start" letter-spacing="0">自动修复与验证</text>
+<rect x="834" y="815" width="571" height="83" rx="16" ry="16" fill="#FFFFFF" stroke="#D9E2EB" stroke-width="1.5"/>
+<rect x="834" y="815" width="7" height="83" rx="4" ry="4" fill="#3B8D72" stroke="#3B8D72" stroke-width="0"/>
+<text x="860" y="846" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="24" font-weight="700" fill="#1E334C" text-anchor="start" letter-spacing="0">写入权限与路径校验</text>
+<text x="860" y="876" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="18" font-weight="400" fill="#5F7083" text-anchor="start" letter-spacing="0">授权模式 2 · 仅修改 calc.py</text>
+<polyline points="1120,900 1120,916" stroke="#9EB0C1" stroke-width="3" fill="none" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrowGray)"/>
+<rect x="834" y="923" width="571" height="83" rx="16" ry="16" fill="#FFFFFF" stroke="#D9E2EB" stroke-width="1.5"/>
+<rect x="834" y="923" width="7" height="83" rx="4" ry="4" fill="#3B8D72" stroke="#3B8D72" stroke-width="0"/>
+<text x="860" y="954" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="24" font-weight="700" fill="#1E334C" text-anchor="start" letter-spacing="0">Verification Controller</text>
+<text x="860" y="984" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="18" font-weight="400" fill="#5F7083" text-anchor="start" letter-spacing="0">写入后自动运行 Docker 测试</text>
+<polyline points="1120,1008 1120,1024" stroke="#9EB0C1" stroke-width="3" fill="none" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrowGray)"/>
+<rect x="834" y="1031" width="571" height="83" rx="16" ry="16" fill="#FFFFFF" stroke="#D9E2EB" stroke-width="1.5"/>
+<rect x="834" y="1031" width="7" height="83" rx="4" ry="4" fill="#3B8D72" stroke="#3B8D72" stroke-width="0"/>
+<text x="860" y="1062" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="24" font-weight="700" fill="#1E334C" text-anchor="start" letter-spacing="0">测试判定与恢复</text>
+<text x="860" y="1092" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="18" font-weight="400" fill="#5F7083" text-anchor="start" letter-spacing="0">PASS / FAIL / ERROR / TIMEOUT</text>
+<text x="1120" y="1140" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="19" font-weight="530" fill="#3B8D72" text-anchor="middle" letter-spacing="0">修复最多 3 次；异常或失败则回滚</text>
+<rect x="1522" y="708" width="625" height="452" rx="23" ry="23" fill="#FFFFFF" stroke="#DFE6EE" stroke-width="1.8" filter="url(#cardShadow)"/>
+<rect x="1547" y="737" width="56" height="56" rx="17" ry="17" fill="#4E7FBD" stroke="#4E7FBD" stroke-width="0"/>
+<text x="1575" y="775" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="26" font-weight="750" fill="#FFFFFF" text-anchor="middle" letter-spacing="0">03</text>
+<text x="1623" y="776" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="32" font-weight="750" fill="#1E334C" text-anchor="start" letter-spacing="0">Sub-agent 协作</text>
+<rect x="1549" y="815" width="571" height="83" rx="16" ry="16" fill="#FFFFFF" stroke="#D9E2EB" stroke-width="1.5"/>
+<rect x="1549" y="815" width="7" height="83" rx="4" ry="4" fill="#4E7FBD" stroke="#4E7FBD" stroke-width="0"/>
+<text x="1575" y="846" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="24" font-weight="700" fill="#1E334C" text-anchor="start" letter-spacing="0">主 Agent 委派分析任务</text>
+<text x="1575" y="876" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="18" font-weight="400" fill="#5F7083" text-anchor="start" letter-spacing="0">delegate_test_analysis</text>
+<polyline points="1835,900 1835,916" stroke="#9EB0C1" stroke-width="3" fill="none" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrowGray)"/>
+<rect x="1549" y="923" width="571" height="83" rx="16" ry="16" fill="#FFFFFF" stroke="#D9E2EB" stroke-width="1.5"/>
+<rect x="1549" y="923" width="7" height="83" rx="4" ry="4" fill="#4E7FBD" stroke="#4E7FBD" stroke-width="0"/>
+<text x="1575" y="954" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="24" font-weight="700" fill="#1E334C" text-anchor="start" letter-spacing="0">Test Analyst 子 Agent</text>
+<text x="1575" y="984" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="18" font-weight="400" fill="#5F7083" text-anchor="start" letter-spacing="0">独立 Agent Loop 与上下文</text>
+<polyline points="1835,1008 1835,1024" stroke="#9EB0C1" stroke-width="3" fill="none" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrowGray)"/>
+<rect x="1549" y="1031" width="571" height="83" rx="16" ry="16" fill="#FFFFFF" stroke="#D9E2EB" stroke-width="1.5"/>
+<rect x="1549" y="1031" width="7" height="83" rx="4" ry="4" fill="#4E7FBD" stroke="#4E7FBD" stroke-width="0"/>
+<text x="1575" y="1062" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="24" font-weight="700" fill="#1E334C" text-anchor="start" letter-spacing="0">子 Agent 只读执行器</text>
+<text x="1575" y="1092" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="18" font-weight="400" fill="#5F7083" text-anchor="start" letter-spacing="0">工具白名单 · 文件路径限制</text>
+<text x="1835" y="1140" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="19" font-weight="530" fill="#4E7FBD" text-anchor="middle" letter-spacing="0">每任务最多委派 2 次，不具备写权限</text>
+<text x="115" y="1220" font-family="Noto Sans CJK SC, Microsoft YaHei, PingFang SC, sans-serif" font-size="25" font-weight="600" fill="#33506A" text-anchor="start" letter-spacing="0">核心原则：模型提出行动建议；Python 运行时决定是否授权；Docker 的真实测试结果决定修复是否成功。</text>
+</svg>

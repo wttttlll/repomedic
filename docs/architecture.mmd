@@ -1,0 +1,27 @@
+flowchart TB
+    U["开发者 / CLI<br/>任务指令与读写授权"] --> A["主 Agent<br/>Agent Loop / 工具分发"]
+    A <--> L["DeepSeek 模型<br/>分析推理 / Tool Calling"]
+    C["会话与上下文<br/>Session / Context / 摘要压缩"] -.-> A
+    S["Skills 技能加载<br/>repo-debug"] -.-> A
+
+    A --> H["Python Runtime + Hooks<br/>执行前权限检查 / 执行后结果记录"]
+
+    H -->|"只读访问"| M["MCP Client / Server"]
+    M --> R["只读工具<br/>list_files / read_file / run_tests"]
+    R --> D["Docker 隔离测试<br/>真实日志与退出码"]
+
+    H -->|"明确授权"| W["仅修改 calc.py"]
+    W --> V["Verification Controller<br/>写入后自动运行测试"]
+    V --> D
+    V -->|"失败或环境异常"| B["最多三次修复 / 自动回滚"]
+
+    H -->|"任务委派"| SA["Test Analyst 子 Agent<br/>独立 Agent Loop / 上下文"]
+    SA --> RO["子 Agent 只读执行器<br/>工具与文件白名单"]
+    RO --> M
+
+    classDef primary fill:#E6F0FE,stroke:#5A87C3,color:#20466B;
+    classDef safety fill:#E8F5EE,stroke:#68A384,color:#245E45;
+    classDef neutral fill:#F1F4F8,stroke:#CCD7E4,color:#293D52;
+    class A,L,SA primary;
+    class H,V,D,RO safety;
+    class U,C,S,R,M,W,B neutral;
