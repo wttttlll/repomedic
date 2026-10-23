@@ -1,5 +1,5 @@
 """
-RepoMedic Benchmark V1: 隔离案例 + 真实 Docker 基线 + 可选 DeepSeek Agent 评测。
+RepoMedic Benchmark : 隔离案例 + 真实 Docker 基线 + 可选 DeepSeek Agent 评测。
 
 运行位置：repomedic 项目根目录
     python benchmarks/benchmark_v1.py --baseline-only --all
