@@ -1,0 +1,42 @@
+[
+  {
+    "case": "subtract_diagnose",
+    "description": "运算符错误：只读诊断",
+    "mode": "read_only",
+    "baseline_only": false,
+    "baseline": {
+      "status": "FAIL",
+      "passed": false,
+      "returncode": 1,
+      "test_count": 2,
+      "output_tail": "test_add_positive (test_calc.TestCalc.test_add_positive) ... FAIL\ntest_add_zero (test_calc.TestCalc.test_add_zero) ... FAIL\n\n======================================================================\nFAIL: test_add_positive (test_calc.TestCalc.test_add_positive)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/workspace/test_calc.py\", line 7, in test_add_positive\n    self.assertEqual(add(2, 3), 5)\nAssertionError: -1 != 5\n\n======================================================================\nFAIL: test_add_zero (test_calc.TestCalc.test_add_zero)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/workspace/test_calc.py\", line 10, in test_add_zero\n    self.assertEqual(add(-1, 1), 0)\nAssertionError: -2 != 0\n\n----------------------------------------------------------------------\nRan 2 tests in 0.004s\n\nFAILED (failures=2)\n"
+    },
+    "baseline_seconds": 0.459,
+    "baseline_matches_expected": true,
+    "after": {
+      "status": "FAIL",
+      "passed": false,
+      "returncode": 1,
+      "test_count": 2,
+      "output_tail": "test_add_positive (test_calc.TestCalc.test_add_positive) ... FAIL\ntest_add_zero (test_calc.TestCalc.test_add_zero) ... FAIL\n\n======================================================================\nFAIL: test_add_positive (test_calc.TestCalc.test_add_positive)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/workspace/test_calc.py\", line 7, in test_add_positive\n    self.assertEqual(add(2, 3), 5)\nAssertionError: -1 != 5\n\n======================================================================\nFAIL: test_add_zero (test_calc.TestCalc.test_add_zero)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/workspace/test_calc.py\", line 10, in test_add_zero\n    self.assertEqual(add(-1, 1), 0)\nAssertionError: -2 != 0\n\n----------------------------------------------------------------------\nRan 2 tests in 0.005s\n\nFAILED (failures=2)\n"
+    },
+    "agent_seconds": 5.662,
+    "tools_called": [
+      "read_file",
+      "read_file",
+      "run_tests"
+    ],
+    "agent_answer": "## 诊断报告（未做任何修改）\n\n### 1. 真实测试结果\n工具返回结果：`\"status\": \"FAIL\"`，`returncode: 1`，`test_count: 2`，两个测试全部失败。\n\n```\ntest_add_positive (test_calc.TestCalc.test_add_positive) ... FAIL\ntest_add_zero (test_calc.TestCalc.test_add_zero) ... FAIL\n\nFAIL: test_add_positive  → AssertionError: -1 != 5\nFAIL: test_add_zero      → AssertionError: -2 != 0\nRan 2 tests in 0.004s\nFAILED (failures=2)\n```\n\n### 2. 代码事实\n`calc.py` 完整内容只有两行：\n\n```python\ndef add(a, b):\n    return a - b\n```\n\n`test_calc.py` 期望的行为是标准加法：\n\n```python\nself.assertEqual(add(2, 3), 5)   # 第 7 行\nself.assertEqual(add(-1, 1), 0)  # 第 10 行\n```\n\n### 3. 根因定位\n`add` 的函数实现使用了减法运算符 `-`，而不是加法 `+`，属于典型的“运算符写错”缺陷，而不是测试写错或环境问题。日志与代码严格对应：\n\n| 测试 | 调用 | 期望 | 实际 | 实际计算过程 |\n|---|---|---|---|---|\n| test_add_positive | `add(2, 3)` | 5 | **-1** | 2 - 3 = -1 |\n| test_add_zero | `add(-1, 1)` | 0 | **-2** | -1 - 1 = -2 |\n\n两条断言的实际值都能被 `a - b` 精确复现，说明失败原因唯一：`calc.py` 第 2 行的运算符错误。测试文件本身逻辑正确（覆盖了正数相加和正负抵消到零两种情形），无需也不应修改。\n\n### 4. 修复方向（仅建议，本次未执行）\n最小改动是把 `calc.py` 第 2 行的 `return a - b` 改为 `return a + b`。改动后需重新运行真实测试，以实际退出码（期望 `returncode: 0`、`FAILED` 消失）作为通过的唯一证据。\n\n按你的要求，本次仅做诊断，未写入任何文件，也未委派子 Agent。如需我执行修复，请明确授权。",
+    "agent_error": null,
+    "checks": {
+      "expected_final_test_status": true,
+      "test_file_unchanged": true,
+      "readonly_source_unchanged": true,
+      "agent_finished_without_exception": true,
+      "agent_called_run_tests": true
+    },
+    "automated_checks_pass": true,
+    "diagnosis_accuracy": "需要人工复核",
+    "outcome": "CHECKS_PASS"
+  }
+]

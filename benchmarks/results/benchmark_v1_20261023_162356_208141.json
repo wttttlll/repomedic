@@ -1,0 +1,66 @@
+[
+  {
+    "case": "subtract_diagnose",
+    "description": "运算符错误：只读诊断",
+    "mode": "read_only",
+    "baseline_only": true,
+    "baseline": {
+      "status": "FAIL",
+      "passed": false,
+      "returncode": 1,
+      "test_count": 2,
+      "output_tail": "test_add_positive (test_calc.TestCalc.test_add_positive) ... FAIL\ntest_add_zero (test_calc.TestCalc.test_add_zero) ... FAIL\n\n======================================================================\nFAIL: test_add_positive (test_calc.TestCalc.test_add_positive)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/workspace/test_calc.py\", line 7, in test_add_positive\n    self.assertEqual(add(2, 3), 5)\nAssertionError: -1 != 5\n\n======================================================================\nFAIL: test_add_zero (test_calc.TestCalc.test_add_zero)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/workspace/test_calc.py\", line 10, in test_add_zero\n    self.assertEqual(add(-1, 1), 0)\nAssertionError: -2 != 0\n\n----------------------------------------------------------------------\nRan 2 tests in 0.006s\n\nFAILED (failures=2)\n"
+    },
+    "baseline_seconds": 0.497,
+    "baseline_matches_expected": true,
+    "outcome": "BASELINE_OK"
+  },
+  {
+    "case": "healthy_diagnose",
+    "description": "正确代码：避免误报",
+    "mode": "read_only",
+    "baseline_only": true,
+    "baseline": {
+      "status": "PASS",
+      "passed": true,
+      "returncode": 0,
+      "test_count": 2,
+      "output_tail": "test_add_positive (test_calc.TestCalc.test_add_positive) ... ok\ntest_add_zero (test_calc.TestCalc.test_add_zero) ... ok\n\n----------------------------------------------------------------------\nRan 2 tests in 0.000s\n\nOK\n"
+    },
+    "baseline_seconds": 0.424,
+    "baseline_matches_expected": true,
+    "outcome": "BASELINE_OK"
+  },
+  {
+    "case": "subtract_repair",
+    "description": "运算符错误：自动修复",
+    "mode": "repair",
+    "baseline_only": true,
+    "baseline": {
+      "status": "FAIL",
+      "passed": false,
+      "returncode": 1,
+      "test_count": 2,
+      "output_tail": "test_add_positive (test_calc.TestCalc.test_add_positive) ... FAIL\ntest_add_zero (test_calc.TestCalc.test_add_zero) ... FAIL\n\n======================================================================\nFAIL: test_add_positive (test_calc.TestCalc.test_add_positive)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/workspace/test_calc.py\", line 7, in test_add_positive\n    self.assertEqual(add(2, 3), 5)\nAssertionError: -1 != 5\n\n======================================================================\nFAIL: test_add_zero (test_calc.TestCalc.test_add_zero)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/workspace/test_calc.py\", line 10, in test_add_zero\n    self.assertEqual(add(-1, 1), 0)\nAssertionError: -2 != 0\n\n----------------------------------------------------------------------\nRan 2 tests in 0.011s\n\nFAILED (failures=2)\n"
+    },
+    "baseline_seconds": 0.459,
+    "baseline_matches_expected": true,
+    "outcome": "BASELINE_OK"
+  },
+  {
+    "case": "constant_repair",
+    "description": "固定错误返回值：自动修复",
+    "mode": "repair",
+    "baseline_only": true,
+    "baseline": {
+      "status": "FAIL",
+      "passed": false,
+      "returncode": 1,
+      "test_count": 2,
+      "output_tail": "test_add_positive (test_calc.TestCalc.test_add_positive) ... FAIL\ntest_add_zero (test_calc.TestCalc.test_add_zero) ... FAIL\n\n======================================================================\nFAIL: test_add_positive (test_calc.TestCalc.test_add_positive)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/workspace/test_calc.py\", line 7, in test_add_positive\n    self.assertEqual(add(2, 3), 5)\nAssertionError: 404 != 5\n\n======================================================================\nFAIL: test_add_zero (test_calc.TestCalc.test_add_zero)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/workspace/test_calc.py\", line 10, in test_add_zero\n    self.assertEqual(add(-1, 1), 0)\nAssertionError: 404 != 0\n\n----------------------------------------------------------------------\nRan 2 tests in 0.016s\n\nFAILED (failures=2)\n"
+    },
+    "baseline_seconds": 0.522,
+    "baseline_matches_expected": true,
+    "outcome": "BASELINE_OK"
+  }
+]

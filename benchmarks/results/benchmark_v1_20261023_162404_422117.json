@@ -1,0 +1,38 @@
+[
+  {
+    "case": "subtract_diagnose",
+    "description": "运算符错误：只读诊断",
+    "mode": "read_only",
+    "baseline_only": false,
+    "baseline": {
+      "status": "FAIL",
+      "passed": false,
+      "returncode": 1,
+      "test_count": 2,
+      "output_tail": "test_add_positive (test_calc.TestCalc.test_add_positive) ... FAIL\ntest_add_zero (test_calc.TestCalc.test_add_zero) ... FAIL\n\n======================================================================\nFAIL: test_add_positive (test_calc.TestCalc.test_add_positive)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/workspace/test_calc.py\", line 7, in test_add_positive\n    self.assertEqual(add(2, 3), 5)\nAssertionError: -1 != 5\n\n======================================================================\nFAIL: test_add_zero (test_calc.TestCalc.test_add_zero)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/workspace/test_calc.py\", line 10, in test_add_zero\n    self.assertEqual(add(-1, 1), 0)\nAssertionError: -2 != 0\n\n----------------------------------------------------------------------\nRan 2 tests in 0.005s\n\nFAILED (failures=2)\n"
+    },
+    "baseline_seconds": 0.473,
+    "baseline_matches_expected": true,
+    "after": {
+      "status": "FAIL",
+      "passed": false,
+      "returncode": 1,
+      "test_count": 2,
+      "output_tail": "test_add_positive (test_calc.TestCalc.test_add_positive) ... FAIL\ntest_add_zero (test_calc.TestCalc.test_add_zero) ... FAIL\n\n======================================================================\nFAIL: test_add_positive (test_calc.TestCalc.test_add_positive)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/workspace/test_calc.py\", line 7, in test_add_positive\n    self.assertEqual(add(2, 3), 5)\nAssertionError: -1 != 5\n\n======================================================================\nFAIL: test_add_zero (test_calc.TestCalc.test_add_zero)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/workspace/test_calc.py\", line 10, in test_add_zero\n    self.assertEqual(add(-1, 1), 0)\nAssertionError: -2 != 0\n\n----------------------------------------------------------------------\nRan 2 tests in 0.006s\n\nFAILED (failures=2)\n"
+    },
+    "agent_seconds": 0.902,
+    "tools_called": [],
+    "agent_answer": "",
+    "agent_error": "RuntimeError: 缺少 apikey 或 DEEPSEEK_API_KEY。先运行 --baseline-only --all 无须模型密钥。",
+    "checks": {
+      "expected_final_test_status": true,
+      "test_file_unchanged": true,
+      "readonly_source_unchanged": true,
+      "agent_finished_without_exception": false,
+      "agent_called_run_tests": false
+    },
+    "automated_checks_pass": false,
+    "diagnosis_accuracy": "需要人工复核",
+    "outcome": "CHECKS_FAIL"
+  }
+]

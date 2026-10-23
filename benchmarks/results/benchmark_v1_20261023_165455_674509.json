@@ -1,0 +1,46 @@
+[
+  {
+    "case": "subtract_repair",
+    "description": "运算符错误：自动修复",
+    "mode": "repair",
+    "baseline_only": false,
+    "baseline": {
+      "status": "FAIL",
+      "passed": false,
+      "returncode": 1,
+      "test_count": 2,
+      "output_tail": "test_add_positive (test_calc.TestCalc.test_add_positive) ... FAIL\ntest_add_zero (test_calc.TestCalc.test_add_zero) ... FAIL\n\n======================================================================\nFAIL: test_add_positive (test_calc.TestCalc.test_add_positive)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/workspace/test_calc.py\", line 7, in test_add_positive\n    self.assertEqual(add(2, 3), 5)\nAssertionError: -1 != 5\n\n======================================================================\nFAIL: test_add_zero (test_calc.TestCalc.test_add_zero)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/workspace/test_calc.py\", line 10, in test_add_zero\n    self.assertEqual(add(-1, 1), 0)\nAssertionError: -2 != 0\n\n----------------------------------------------------------------------\nRan 2 tests in 0.005s\n\nFAILED (failures=2)\n"
+    },
+    "baseline_seconds": 0.453,
+    "baseline_matches_expected": true,
+    "after": {
+      "status": "PASS",
+      "passed": true,
+      "returncode": 0,
+      "test_count": 2,
+      "output_tail": "test_add_positive (test_calc.TestCalc.test_add_positive) ... ok\ntest_add_zero (test_calc.TestCalc.test_add_zero) ... ok\n\n----------------------------------------------------------------------\nRan 2 tests in 0.000s\n\nOK\n"
+    },
+    "agent_seconds": 9.471,
+    "tools_called": [
+      "list_files",
+      "read_file",
+      "read_file",
+      "run_tests",
+      "write_file",
+      "run_tests"
+    ],
+    "agent_answer": "【Python 验证成功】共修改 1 次，通过 2 个单元测试，退出码为 0。\n\n## 修复报告\n\n**问题位置**\n- 文件 `calc.py`，唯一的函数 `add(a, b)`，第 2 行。\n\n**Bug 根本原因**\n- 该函数实现为 `return a - b`，执行的是减法，而函数名 `add` 和它的调用方都期望执行加法。\n- 真实失败日志证据显示：`add(2, 3)` 返回 `-1`，而期望值为 `5`；`add(-1, 1)` 返回 `-2`，而期望值为 `0`。两个测试均 FAIL，退出码为 1。\n\n**修改内容**\n将 `calc.py` 的 `add` 函数从 `a - b` 改为 `a + b`：\n\n```python\ndef add(a, b):\n    return a + b\n```\n\n本次仅修改了 `calc.py`，测试文件 `test_calc.py` 未作任何改动。\n\n**测试结果**\n- 修改 1 次后，Python Verification Controller 自动验证：`status: PASS`、`returncode: 0`、`2/2` 测试通过。\n- 随后我又运行了一次 `run_tests` 进行独立复核，结果同样是 `PASS`、`returncode: 0`、`test_add_positive` 和 `test_add_zero` 均显示 `ok`。\n\n**剩余风险**\n- 当前测试只覆盖整数加法，未覆盖浮点数、字符串拼接、大数或 None 输入，因此无法确认非整数类型的行为；不过这类行为在原始设计中并未定义。\n- 未引入类型检查或异常处理，若调用方传入非数值类型，会依赖 Python 原生 `+` 的语义，即字符串拼接行为。\n- 修复范围仅限 `add`，仓库内无其他函数可供交叉验证。",
+    "agent_error": null,
+    "checks": {
+      "expected_final_test_status": true,
+      "test_file_unchanged": true,
+      "readonly_source_unchanged": true,
+      "agent_finished_without_exception": true,
+      "source_was_modified": true,
+      "final_test_exit_zero": true
+    },
+    "automated_checks_pass": true,
+    "diagnosis_accuracy": "需要人工复核",
+    "outcome": "CHECKS_PASS"
+  }
+]

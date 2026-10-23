@@ -1,0 +1,43 @@
+[
+  {
+    "case": "healthy_diagnose",
+    "description": "正确代码：避免误报",
+    "mode": "read_only",
+    "baseline_only": false,
+    "baseline": {
+      "status": "PASS",
+      "passed": true,
+      "returncode": 0,
+      "test_count": 2,
+      "output_tail": "test_add_positive (test_calc.TestCalc.test_add_positive) ... ok\ntest_add_zero (test_calc.TestCalc.test_add_zero) ... ok\n\n----------------------------------------------------------------------\nRan 2 tests in 0.000s\n\nOK\n"
+    },
+    "baseline_seconds": 0.528,
+    "baseline_matches_expected": true,
+    "after": {
+      "status": "PASS",
+      "passed": true,
+      "returncode": 0,
+      "test_count": 2,
+      "output_tail": "test_add_positive (test_calc.TestCalc.test_add_positive) ... ok\ntest_add_zero (test_calc.TestCalc.test_add_zero) ... ok\n\n----------------------------------------------------------------------\nRan 2 tests in 0.000s\n\nOK\n"
+    },
+    "agent_seconds": 8.629,
+    "tools_called": [
+      "list_files",
+      "read_file",
+      "run_tests",
+      "read_file"
+    ],
+    "agent_answer": "## 诊断报告（仅诊断，未修改任何文件）\n\n### 1. 仓库结构\n- `demo_repo/` 仅含两个文件：`calc.py`、`test_calc.py`。\n\n### 2. 代码内容\n**calc.py**\n```python\ndef add(a, b):\n    return a + b\n```\n\n**test_calc.py**（2 个测试用例）\n- `test_add_positive`：`add(2, 3) == 5`\n- `test_add_zero`：`add(-1, 1) == 0`\n\n### 3. 真实测试结果（Python 实际运行）\n```\ntest_add_positive (test_calc.TestCalc.test_add_positive) ... ok\ntest_add_zero (test_calc.TestCalc.test_add_zero) ... ok\n\nRan 2 tests in 0.000s\nOK\n```\n- status: `PASS`\n- returncode: `0`\n- test_count: `2`\n\n### 4. 结论：目前**没有**测试证据支持存在 Bug\n- `calc.py` 的 `add` 实现是标准的 `a + b`，与被测的两个用例（正数相加、正负抵消）逻辑一致。\n- 2/2 测试通过，退出码 0，无失败、无异常、无超时。\n\n### 5. 问题位置\n- 未发现缺陷位置；无可归因的 Bug 行。\n\n### 6. 根本原因\n- 不适用（当前无失败用例可归因）。\n\n### 7. 修改内容\n- 无。本次任务仅授权诊断，未调用任何写入操作。\n\n### 8. 剩余风险（测试覆盖局限，非 Bug 证据）\n- 覆盖较薄：仅 2 个用例，均为一/两位整数。\n- 未覆盖场景：浮点数（精度/行为差异）、大整数、字符串与序列拼接（`add(\"a\",\"b\")` 会返回拼接而非报错）、`None`/类型错误（类型检查缺失，`add(None, 1)` 会抛 `TypeError`）、布尔值（`True + True == 2`）、非交换数值类型（如 `Decimal` 与 `float` 混用）。\n- 若业务上要求 `add` 必须是「仅数值、且类型受约束」，则当前实现属于「缺少输入校验」的潜在设计缺口——但这属于覆盖不足带来的假设，**不构成当前测试证据支持的 Bug**。\n\n如需进一步核实，可在获得授权后新增（非修改现有）测试用例来探测上述边界；在此之前，不应声称代码存在 Bug。",
+    "agent_error": null,
+    "checks": {
+      "expected_final_test_status": true,
+      "test_file_unchanged": true,
+      "readonly_source_unchanged": true,
+      "agent_finished_without_exception": true,
+      "agent_called_run_tests": true
+    },
+    "automated_checks_pass": true,
+    "diagnosis_accuracy": "需要人工复核",
+    "outcome": "CHECKS_PASS"
+  }
+]

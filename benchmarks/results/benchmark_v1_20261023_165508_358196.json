@@ -1,0 +1,45 @@
+[
+  {
+    "case": "constant_repair",
+    "description": "固定错误返回值：自动修复",
+    "mode": "repair",
+    "baseline_only": false,
+    "baseline": {
+      "status": "FAIL",
+      "passed": false,
+      "returncode": 1,
+      "test_count": 2,
+      "output_tail": "test_add_positive (test_calc.TestCalc.test_add_positive) ... FAIL\ntest_add_zero (test_calc.TestCalc.test_add_zero) ... FAIL\n\n======================================================================\nFAIL: test_add_positive (test_calc.TestCalc.test_add_positive)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/workspace/test_calc.py\", line 7, in test_add_positive\n    self.assertEqual(add(2, 3), 5)\nAssertionError: 404 != 5\n\n======================================================================\nFAIL: test_add_zero (test_calc.TestCalc.test_add_zero)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/workspace/test_calc.py\", line 10, in test_add_zero\n    self.assertEqual(add(-1, 1), 0)\nAssertionError: 404 != 0\n\n----------------------------------------------------------------------\nRan 2 tests in 0.005s\n\nFAILED (failures=2)\n"
+    },
+    "baseline_seconds": 0.413,
+    "baseline_matches_expected": true,
+    "after": {
+      "status": "PASS",
+      "passed": true,
+      "returncode": 0,
+      "test_count": 2,
+      "output_tail": "test_add_positive (test_calc.TestCalc.test_add_positive) ... ok\ntest_add_zero (test_calc.TestCalc.test_add_zero) ... ok\n\n----------------------------------------------------------------------\nRan 2 tests in 0.000s\n\nOK\n"
+    },
+    "agent_seconds": 6.464,
+    "tools_called": [
+      "list_files",
+      "run_tests",
+      "read_file",
+      "read_file",
+      "write_file"
+    ],
+    "agent_answer": "【Python 验证成功】共修改 1 次，通过 2 个单元测试，退出码为 0。\n\n## 修复报告\n\n**问题位置**\n`demo_repo/calc.py` 中的 `add(a, b)` 函数（文件只有 2 行）。\n\n**Bug 根本原因**\n函数体为 `return 404`，完全忽略入参 `a`、`b`，固定返回常量 404（典型的占位/调试残留）。因此 `add(2, 3)` 返回 404 而非 5，`add(-1, 1)` 返回 404 而非 0，两个测试全部失败。\n\n**修改内容（最小改动，仅 calc.py）**\n```python\ndef add(a, b):\n    return a + b\n```\n未改动 `test_calc.py` 及任何其他文件。\n\n**测试结果（真实 Python 退出码）**\n- 修改前：`status=FAIL`，`returncode=1`，2 个测试均失败（`AssertionError: 404 != 5`、`404 != 0`）\n- 修改后：`status=PASS`，`returncode=0`，`Ran 2 tests … OK`\n\n退出码为 0，即为修复成功的最终证据。\n\n**剩余风险**\n- 当前测试只覆盖整数正数与含负整数的加法，未覆盖浮点数、超大数、字符串拼接或非数值类型传入等边界情况；若后续要求严格类型校验（例如拒绝 `add(\"1\", 2)`），需另行定义行为并补充测试。\n- 备份文件位于 `…/data/backups/calc_18ad4d45b29349cdace95bd63b2689e8.bak`，如需回滚可从该处恢复。",
+    "agent_error": null,
+    "checks": {
+      "expected_final_test_status": true,
+      "test_file_unchanged": true,
+      "readonly_source_unchanged": true,
+      "agent_finished_without_exception": true,
+      "source_was_modified": true,
+      "final_test_exit_zero": true
+    },
+    "automated_checks_pass": true,
+    "diagnosis_accuracy": "需要人工复核",
+    "outcome": "CHECKS_PASS"
+  }
+]

@@ -1,6 +1,10 @@
+.idea/
 .venv/
 .venv_agent/
-.idea/
 __pycache__/
-*.py[cod]
+.pytest_cache/
+*.pyc
+
 .env
+.env.*
+!.env.example
