@@ -100,4 +100,37 @@ TOOLS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "generate_ppt",
+            "description": "根据幻灯片内容生成可编辑的 PPTX 文件",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "filename": {
+                        "type": "string",
+                        "description": "输出文件名，如 demo.pptx"
+                    },
+                    "slides": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 30,
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "title": {"type": "string"},
+                                "bullets": {
+                                    "type": "array",
+                                    "items": {"type": "string"}
+                                }
+                            },
+                            "required": ["title", "bullets"]
+                        }
+                    }
+                },
+                "required": ["filename", "slides"]
+            }
+        }
+    }
 ]

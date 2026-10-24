@@ -1,6 +1,6 @@
 """RepoMedic CLI 入口与向后兼容接口。
 
-核心逻辑已在 core/ 和 tools/：
+核心逻辑在 core/ 和 tools/：
 - core.runner: Agent Loop
 - core.tool_dispatcher: Hook / MCP / Sub-agent 路由
 - core.repair: 快照、重试与回滚
@@ -11,9 +11,8 @@
 保留原 run_agent / run_tool / execute_tests 等入口，以兼容现有测试和 Benchmark。
 """
 from __future__ import annotations
-
+from integrations.ppt_generator import generate_ppt
 import os
-from pathlib import Path
 
 from config import (
     BASE,
@@ -28,21 +27,19 @@ from config import (
     MCP_REMOTE_TOOLS,
     SYSTEM_PROMPT,
 )
+from context.context_compressor import ContextCompressor
+from context.context_manager import ContextManager
 from core.repair import restore_file
 from core.runner import AgentServices, run_agent as _run_agent_loop
 from core.verification import checked_test_result as _verify_result
 from core.verification import execute_tests as _docker_execute_tests
-from tools.definitions import TOOLS
-from tools.local_tools import run_tool as _run_local_tool
-
-from hooks.hook_manager import HookManager, HookDenied
-from sessions.session_manager import SessionManager
-from context.context_manager import ContextManager
-from context.context_compressor import ContextCompressor
+from hooks.hook_manager import HookManager
 from integrations.test_runner import run_unittest
+from sessions.session_manager import SessionManager
 from skills.skill_loader import SkillLoader, format_skill_context
 from subagents.test_analyst import TestAnalystSubAgent
-
+from tools.definitions import TOOLS
+from tools.local_tools import run_tool as _run_local_tool
 
 SKILL_LOADER = SkillLoader(BASE / "skills")
 HOOKS = HookManager()
@@ -62,9 +59,7 @@ def _checked_test_result(value: object) -> dict:
 
 
 def execute_tests() -> dict:
-    return _docker_execute_tests(
-        ROOT, runner=run_unittest, checked_result=_checked_test_result
-    )
+    return _docker_execute_tests(ROOT, runner=run_unittest, checked_result=_checked_test_result)
 
 
 def restore_original(content: bytes) -> None:

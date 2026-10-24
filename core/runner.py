@@ -9,6 +9,7 @@ from typing import Any, Callable
 
 from core.repair import RepairState
 from core.tool_dispatcher import ToolDispatcher
+from integrations.ppt_generator import generate_ppt
 
 
 @dataclass(frozen=True)
@@ -254,7 +255,19 @@ def run_agent(
                             if repair.wrote_file and test_result["status"] in {"ERROR", "TIMEOUT"}:
                                 infrastructure_issue = test_result["status"]
                                 limit_reached = True
+                        elif name == "generate_ppt":
+                            if not allow_write:
+                                raise PermissionError("生成 PPT 需要写入授权")
 
+                            if set(args) != {"filename", "slides"}:
+                                raise ValueError("generate_ppt 参数不正确")
+
+                            result = generate_ppt(
+                                filename=args["filename"],
+                                slides=args["slides"]
+                            )
+
+                            return json.dumps(result, ensure_ascii=False)
                     except Exception as exc:
                         tool_output = f"工具错误: {type(exc).__name__}: {exc}"
                         print(f"[ToolError] {name}: {tool_output}")
