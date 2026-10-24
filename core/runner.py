@@ -66,7 +66,11 @@ def run_agent(
     # 模型看不到未授权的写工具；Runtime 中还有独立的二次校验。
     available_tools = [
         tool for tool in services.tools
-        if (allow_write or tool["function"]["name"] != "write_file")
+        if (
+            allow_write
+            or tool["function"]["name"]
+            not in {"write_file", "generate_ppt"}
+           )
         and (mcp_tools is None or tool["function"]["name"] not in services.mcp_remote_tools)
     ]
     if (mcp_tools is None) != (mcp_executor is None):

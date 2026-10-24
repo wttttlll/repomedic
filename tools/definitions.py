@@ -132,5 +132,106 @@ TOOLS = [
                 "required": ["filename", "slides"]
             }
         }
-    }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "inspect_ppt_template",
+            "description": "列出或检查 templates/ppt 中的 PPTX 模板，返回页数和版式名称。",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "template": {
+                        "type": "string",
+                        "description": "模板文件名，如 company.pptx；省略时列出模板"
+                    }
+                },
+                "additionalProperties": False
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "generate_ppt",
+            "description": "创建高质量可编辑 PPTX，可用自定义模板、版式、图表和预览。",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "filename": {
+                        "type": "string",
+                        "description": "输出文件名，如 report.pptx"
+                    },
+                    "template": {
+                        "type": "string",
+                        "description": "可选的模板文件名"
+                    },
+                    "template_mode": {
+                        "type": "string",
+                        "enum": ["replace", "append"]
+                    },
+                    "palette": {
+                        "type": "string",
+                        "enum": ["ocean", "forest", "sunset", "minimal"]
+                    },
+                    "preview": {
+                        "type": "boolean"
+                    },
+                    "slides": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 30,
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "layout": {
+                                    "type": "string",
+                                    "enum": [
+                                        "cover", "section", "bullets",
+                                        "two_column", "cards", "quote",
+                                        "chart", "timeline"
+                                    ]
+                                },
+                                "template_layout": {"type": "string"},
+                                "title": {"type": "string"},
+                                "subtitle": {"type": "string"},
+                                "bullets": {
+                                    "type": "array",
+                                    "items": {"type": "string"}
+                                },
+                                "left": {
+                                    "type": "array",
+                                    "items": {"type": "string"}
+                                },
+                                "right": {
+                                    "type": "array",
+                                    "items": {"type": "string"}
+                                },
+                                "cards": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "title": {"type": "string"},
+                                            "body": {"type": "string"}
+                                        }
+                                    }
+                                },
+                                "quote": {"type": "string"},
+                                "chart": {"type": "object"},
+                                "events": {
+                                    "type": "array",
+                                    "items": {"type": "object"}
+                                }
+                            },
+                            "required": ["title"],
+                            "additionalProperties": False
+                        }
+                    }
+                },
+                "required": ["filename", "slides"],
+                "additionalProperties": False
+            }
+        }
+    },
 ]

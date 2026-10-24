@@ -7,7 +7,10 @@ import shutil
 import uuid
 from pathlib import Path
 from typing import Callable
-
+from integrations.ppt_generator import (
+    inspect_template,
+    generate_presentation,
+)
 
 def run_tool(
     name: str,
@@ -97,4 +100,42 @@ def run_tool(
             "。请立即运行 run_tests 验证修改。"
         )
 
+    if name == "inspect_ppt_template":
+        if not set(args).issubset({"template"}):
+            raise ValueError("模板检查参数不正确")
+
+        result = inspect_template(
+            base,
+            template=args.get("template")
+        )
+        return json.dumps(result, ensure_ascii=False)
+
+    if name == "generate_ppt":
+        if not allow_write:
+            raise PermissionError("需要文件写入授权")
+
+        allowed_keys = {
+            "filename",
+            "slides",
+            "palette",
+            "template",
+            "template_mode",
+            "preview",
+        }
+        if not set(args).issubset(allowed_keys):
+            raise ValueError("PPT 参数中存在未知字段")
+
+        if "filename" not in args or "slides" not in args:
+            raise ValueError("缺少 filename 或 slides")
+
+        result = generate_presentation(
+            base,
+            filename=args["filename"],
+            slides=args["slides"],
+            palette=args.get("palette", "ocean"),
+            template=args.get("template"),
+            template_mode=args.get("template_mode", "replace"),
+            preview=args.get("preview", True),
+        )
+        return json.dumps(result, ensure_ascii=False)
     raise ValueError(f"未知工具: {name}")

@@ -20,6 +20,11 @@ class HookManager:
                 self.logger("[PreToolUse] write_file: DENY")
                 raise HookDenied("只允许修改 calc.py")
 
+        if name == "generate_ppt":
+            if not allow_write:
+                self.logger("[PreToolUse] generate_ppt: DENY")
+                raise HookDenied("当前会话没有 PPT 写入权限")
+
         self.logger(f"[PreToolUse] {name}: ALLOW")
 
     def post_tool_use(self, name, *, success):
