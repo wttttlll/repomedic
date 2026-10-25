@@ -260,7 +260,7 @@ def generate_presentation(
 ):
     filename=_safe_filename(filename,'.pptx')
     if palette not in PALETTES: raise ValueError('未知配色')
-    if template_mode not in ('replace','append'): raise ValueError('template_mode 仅支持 replace/append')
+    if template_mode not in ('replace','append',"reference_fill",): raise ValueError("不支持的模板模式")
     if not isinstance(slides,list) or not 1<=len(slides)<=MAX_SLIDES:
         raise ValueError('slides 必须是 1～30 项数组')
     if len(str(slides).encode('utf-8'))>180_000: raise ValueError('内容超过 180KB')
@@ -268,6 +268,20 @@ def generate_presentation(
     template_path=base/'templates'/'ppt'/template if template else None
     prs=Presentation(str(template_path)) if template else Presentation()
     if template and template_mode=='replace': _remove_all_slides(prs)
+    if template_mode == "reference_fill":
+        if template != "base.pptx":
+            raise ValueError("reference_fill 必须使用 base.pptx")
+        from integrations.ppt_template_filler import (generate_from_reference,)
+
+        return generate_from_reference(
+            base=base,
+            filename=filename,
+            slides=slides,
+            template_name=template,
+            reference_name="reference.pptx",
+            style_name="style_rules.json",
+            preview=preview,
+        )
     if not template:
         prs.slide_width=Inches(13.333); prs.slide_height=Inches(7.5)
     layout_map={l.name:l for l in prs.slide_layouts}

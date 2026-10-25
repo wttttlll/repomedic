@@ -135,11 +135,17 @@ TOOLS = [
                     },
                     "template_mode": {
                         "type": "string",
-                        "enum": ["replace", "append"]
+                        "enum": [
+                                "replace",
+                                "append",
+                                "reference_fill"
+                            ],
+                            "description":
+                                "reference_fill 使用固定底板和参考样式；replace 重建幻灯片；append 追加页面"
                     },
                     "palette": {
                         "type": "string",
-                        "enum": ["ocean", "forest", "sunset", "minimal"]
+                        "enum": ["ocean", "forest", "sunset", "minimal","academic_navy"]
                     },
                     "preview": {
                         "type": "boolean"
@@ -156,7 +162,9 @@ TOOLS = [
                                     "enum": [
                                         "cover", "section", "bullets",
                                         "two_column", "cards", "quote",
-                                        "chart", "timeline"
+                                        "chart", "timeline","outline","table",
+                                        "auto","info_blocks","two_column",
+                                        "cover","outline","cards",
                                     ]
                                 },
                                 "template_layout": {"type": "string"},
@@ -180,7 +188,25 @@ TOOLS = [
                                         "type": "object",
                                         "properties": {
                                             "title": {"type": "string"},
-                                            "body": {"type": "string"}
+                                            "body": {"type": "string"},
+                                            "table": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "headers": {
+                                                        "type": "array",
+                                                        "items": {"type": "string"}
+                                                    },
+                                                    "rows": {
+                                                        "type": "array",
+                                                        "items": {
+                                                            "type": "array",
+                                                            "items": {"type": "string"}
+                                                        }
+                                                    }
+                                                },
+                                                "required": ["headers", "rows"],
+                                                "additionalProperties": False
+                                            },
                                         }
                                     }
                                 },
@@ -189,7 +215,7 @@ TOOLS = [
                                 "events": {
                                     "type": "array",
                                     "items": {"type": "object"}
-                                }
+                                },
                             },
                             "required": ["title"],
                             "additionalProperties": False

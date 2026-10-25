@@ -11,7 +11,6 @@
 保留原 run_agent / run_tool / execute_tests 等入口，以兼容现有测试和 Benchmark。
 """
 from __future__ import annotations
-# from integrations.ppt_generator import generate_ppt
 import os
 
 from config import (
@@ -158,7 +157,7 @@ def main() -> None:
                     break
                 lines.append(line)
             task = "\n".join(lines).strip()
-            
+
         except (EOFError, KeyboardInterrupt):
             print("\n已退出。")
             break

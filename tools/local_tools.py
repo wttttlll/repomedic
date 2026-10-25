@@ -23,9 +23,12 @@ def run_tool(
     execute_tests: Callable[[], dict],
 ) -> str:
     """执行本地工具；保留原有 JSON 字符串返回接口。"""
-    if not isinstance(args, dict):
-        raise ValueError("工具参数必须是 JSON 对象")
+    if name == "inspect_ppt_template":
+        if not set(args).issubset({"template"}):
+            raise ValueError("模板检查参数不正确")
+        result = inspect_template(base,template=args.get("template"),)
 
+        return json.dumps(result, ensure_ascii=False)
     if name == "list_files":
         if args:
             raise ValueError("list_files 不接受参数")
@@ -100,34 +103,39 @@ def run_tool(
             "。请立即运行 run_tests 验证修改。"
         )
 
-    if name == "inspect_ppt_template":
-        if not set(args).issubset({"template"}):
-            raise ValueError("模板检查参数不正确")
-
-        result = inspect_template(
-            base,
-            template=args.get("template")
-        )
-        return json.dumps(result, ensure_ascii=False)
-
     if name == "generate_ppt":
         if not allow_write:
-            raise PermissionError(
-                "生成 PPT 需要写入授权"
-            )
+            raise PermissionError("生成 PPT 需要写入授权")
 
-        from integrations.ppt_generator import (
-            generate_presentation
-        )
+        required = {"filename", "slides"}
+        optional = {
+            "palette",
+            "template",
+            "template_mode",
+            "preview",
+        }
 
-        return generate_presentation(
+        if not required.issubset(args):
+            raise ValueError("缺少 filename 或 slides 参数")
+
+        if not set(args).issubset(required | optional):
+            raise ValueError("存在不支持的 PPT 参数")
+
+        if not isinstance(args["filename"], str):
+            raise ValueError("filename 必须是字符串")
+
+        if not isinstance(args["slides"], list):
+            raise ValueError("slides 必须是数组")
+
+        result = generate_presentation(
             base,
             filename=args["filename"],
             slides=args["slides"],
             palette=args.get("palette", "ocean"),
             template=args.get("template"),
-            template_mode=args.get("template_mode", "replace"),
+            template_mode=args.get("template_mode","reference_fill"if args.get("template") == "base.pptx"else "replace",),
             preview=args.get("preview", True),
         )
         return json.dumps(result, ensure_ascii=False)
+
     raise ValueError(f"未知工具: {name}")
