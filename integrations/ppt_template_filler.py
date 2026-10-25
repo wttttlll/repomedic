@@ -4,13 +4,14 @@ Scope: reusable content pages of base.pptx. Does not claim pixel-perfect design
 inference or faithful table-style inference when no source table exists.
 """
 from __future__ import annotations
-from integrations.ppt_layout_engine import prepare_slide
+
 from copy import deepcopy
 from pathlib import Path
 import re
 import uuid
 
 from pptx import Presentation
+from integrations.ppt_layout_engine import prepare_slide
 from pptx.dml.color import RGBColor
 from pptx.enum.text import MSO_AUTO_SIZE, PP_ALIGN, MSO_ANCHOR
 from pptx.enum.dml import MSO_LINE_DASH_STYLE
@@ -278,6 +279,7 @@ def _fill(slide, item, style, width, height, warnings, index):
     band.fill.solid()
     band.fill.fore_color.rgb = _hex_color("061E55", "061E55")
     band.line.fill.background()
+    title_style = {**title_style, "color": "FFFFFF"}
     _add_text(
         slide, title,
         title_style["x"], title_style["y"],
@@ -323,9 +325,27 @@ def _fill(slide, item, style, width, height, warnings, index):
             raise ValueError("reference_fill 暂不支持 chart，请使用图表专用模式")
         if len(lines) > 9 or sum(len(s) for s in lines) > 700:
             raise ValueError(f"第 {index} 页内容过多，请拆页，避免破坏固定字号")
-        content_text = "\n\n".join(lines)
-        _add_text(slide, content_text, 1.0, top,
-                  width - 2.0, available_h, style["body"])
+        if kind == "bullets" and lines:
+            from math import ceil
+            n = len(lines)
+            gap = .18
+            box_h = (available_h - gap*(n-1))/n
+            if box_h < .62:
+                raise ValueError("正文过多，请拆页")
+            for j, line in enumerate(lines):
+                y = top + j*(box_h+gap)
+                label = slide.shapes.add_shape(
+                    MSO_SHAPE.RECTANGLE, Inches(.75), Inches(y+.05),
+                    Inches(.075), Inches(min(.4,box_h-.1)))
+                label.fill.solid()
+                label.fill.fore_color.rgb = _hex_color("4B7CC8","4B7CC8")
+                label.line.fill.background()
+                _add_text(slide, line, .95, y, width-1.85, box_h,
+                          style["body"],size=18)
+        else:
+            content_text = "\n\n".join(lines)
+            _add_text(slide, content_text, 1.0, top,
+                      width - 2.0, available_h, style["body"])
         if kind == "cover":
             warnings.append("底板无独立封面页：cover 使用空白内容页，非原模板封面设计")
         if kind == "timeline":
@@ -362,8 +382,8 @@ def generate_from_reference(*, base, filename, slides,
 
     # Create all output pages before removing original pages, preserving source objects.
     original_count = len(prs.slides)
-    for i, raw_item in enumerate(slides, 1):
-        item = prepare_slide(raw_item)
+    for i, original_item in enumerate(slides, 1):
+        item = prepare_slide(original_item)
         layout_type = item.get("layout", "bullets") if isinstance(item, dict) else "bullets"
         source = prs.slides[4 if layout_type == "table" or (isinstance(item, dict) and "table" in item) else 2]
         generated = _clone_slide(prs, source)

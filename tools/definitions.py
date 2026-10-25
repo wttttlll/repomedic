@@ -260,3 +260,34 @@ def validate_tools(tools):
 
 
 validate_tools(TOOLS)
+
+
+def _configure_reference_fill_v4():
+    entry = next(t["function"] for t in TOOLS
+                 if t.get("type") == "function"
+                 and t["function"].get("name") == "generate_ppt")
+    props = entry["parameters"]["properties"]
+    props.setdefault("template_mode", {"type":"string"})["enum"] = [
+        "replace", "append", "reference_fill"]
+    props.setdefault("palette", {"type":"string"})["enum"] = [
+        "ocean", "forest", "sunset", "minimal", "academic_navy"]
+    slide_props = props["slides"]["items"]["properties"]
+    slide_props.setdefault("layout", {"type":"string"})["enum"] = [
+        "auto", "cover", "outline", "section", "bullets",
+        "two_column", "cards", "quote", "chart", "timeline", "table", "info_blocks"]
+    slide_props["table"] = {
+        "type":"object",
+        "properties":{
+            "headers":{"type":"array","items":{"type":"string"}},
+            "rows":{"type":"array","items":{
+                "type":"array","items":{"type":"string"}}}
+        },"required":["headers","rows"],"additionalProperties":False}
+    slide_props["blocks"] = {
+        "type":"array","minItems":1,"maxItems":4,
+        "items":{"type":"object","properties":{
+            "title":{"type":"string"},
+            "body":{"type":"string"},
+            "bullets":{"type":"array","items":{"type":"string"}}
+        },"required":["title"],"additionalProperties":False}}
+
+_configure_reference_fill_v4()
