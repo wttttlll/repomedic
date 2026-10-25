@@ -112,23 +112,15 @@ def run_tool(
 
     if name == "generate_ppt":
         if not allow_write:
-            raise PermissionError("需要文件写入授权")
+            raise PermissionError(
+                "生成 PPT 需要写入授权"
+            )
 
-        allowed_keys = {
-            "filename",
-            "slides",
-            "palette",
-            "template",
-            "template_mode",
-            "preview",
-        }
-        if not set(args).issubset(allowed_keys):
-            raise ValueError("PPT 参数中存在未知字段")
+        from integrations.ppt_generator import (
+            generate_presentation
+        )
 
-        if "filename" not in args or "slides" not in args:
-            raise ValueError("缺少 filename 或 slides")
-
-        result = generate_presentation(
+        return generate_presentation(
             base,
             filename=args["filename"],
             slides=args["slides"],

@@ -11,7 +11,7 @@
 保留原 run_agent / run_tool / execute_tests 等入口，以兼容现有测试和 Benchmark。
 """
 from __future__ import annotations
-from integrations.ppt_generator import generate_ppt
+# from integrations.ppt_generator import generate_ppt
 import os
 
 from config import (
@@ -150,7 +150,15 @@ def main() -> None:
 
     while True:
         try:
-            task = input("请输入：").strip()
+            print("请输入任务（支持多行，单独输入 END 结束）：")
+            lines = []
+            while True:
+                line = input()
+                if line.strip() == "END":
+                    break
+                lines.append(line)
+            task = "\n".join(lines).strip()
+            
         except (EOFError, KeyboardInterrupt):
             print("\n已退出。")
             break

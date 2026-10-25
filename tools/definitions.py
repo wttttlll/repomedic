@@ -103,39 +103,6 @@ TOOLS = [
     {
         "type": "function",
         "function": {
-            "name": "generate_ppt",
-            "description": "根据幻灯片内容生成可编辑的 PPTX 文件",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "filename": {
-                        "type": "string",
-                        "description": "输出文件名，如 demo.pptx"
-                    },
-                    "slides": {
-                        "type": "array",
-                        "minItems": 1,
-                        "maxItems": 30,
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "title": {"type": "string"},
-                                "bullets": {
-                                    "type": "array",
-                                    "items": {"type": "string"}
-                                }
-                            },
-                            "required": ["title", "bullets"]
-                        }
-                    }
-                },
-                "required": ["filename", "slides"]
-            }
-        }
-    },
-    {
-        "type": "function",
-        "function": {
             "name": "inspect_ppt_template",
             "description": "列出或检查 templates/ppt 中的 PPTX 模板，返回页数和版式名称。",
             "parameters": {
@@ -235,3 +202,35 @@ TOOLS = [
         }
     },
 ]
+def validate_tools(tools):
+    names = set()
+
+    for i, tool in enumerate(tools):
+        if tool.get("type") != "function":
+            raise ValueError(
+                f"Invalid tool type at index {i}"
+            )
+
+        function = tool.get("function")
+
+        if not isinstance(function, dict):
+            raise ValueError(
+                f"Missing function at index {i}"
+            )
+
+        name = function.get("name")
+
+        if not name:
+            raise ValueError(
+                f"Missing tool name at index {i}"
+            )
+
+        if name in names:
+            raise ValueError(
+                f"Duplicate tool name: {name}"
+            )
+
+        names.add(name)
+
+
+validate_tools(TOOLS)

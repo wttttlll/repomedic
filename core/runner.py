@@ -162,7 +162,7 @@ def run_agent(
                         messages.append({
                             "role": "user",
                             "content": (
-                                "【Agent验证控制器】上次修改没有通过测试。"
+                                "[Agent验证控制器]上次修改没有通过测试。"
                                 "请根据下列真实日志再次尝试修复，不要只口头宣布成功。"
                                 "如果无法修复，请明确说明。\n"
                                 + json.dumps(repair.last_test, ensure_ascii=False)
@@ -173,7 +173,7 @@ def run_agent(
                         continue
 
                     return finish(
-                        "【修复失败】\n"
+                        "[修复失败]\n"
                         + rollback("模型提前结束或不再提供修复方案")
                         + "\n最后一次测试结果：\n"
                         + json.dumps(repair.last_test, ensure_ascii=False)
@@ -181,11 +181,11 @@ def run_agent(
 
                 if repair.wrote_file and repair.verified_passed:
                     return finish(
-                        f"【Python 验证成功】共修改 {repair.write_attempts} 次，"
+                        f"[Python 验证成功]共修改 {repair.write_attempts} 次，"
                         f"通过 {repair.last_test['test_count']} 个单元测试，退出码为 0。\n\n"
                         + answer
                     )
-                return finish("【本轮没有修改文件】\n" + answer if allow_write else answer)
+                return finish("[本轮没有修改文件]\n" + answer if allow_write else answer)
 
             # 批量工具调用先登记 assistant 决策，执行后逐项配对返回 ID。
             messages.append({
@@ -259,19 +259,7 @@ def run_agent(
                             if repair.wrote_file and test_result["status"] in {"ERROR", "TIMEOUT"}:
                                 infrastructure_issue = test_result["status"]
                                 limit_reached = True
-                        elif name == "generate_ppt":
-                            if not allow_write:
-                                raise PermissionError("生成 PPT 需要写入授权")
-
-                            if set(args) != {"filename", "slides"}:
-                                raise ValueError("generate_ppt 参数不正确")
-
-                            result = generate_ppt(
-                                filename=args["filename"],
-                                slides=args["slides"]
-                            )
-
-                            return json.dumps(result, ensure_ascii=False)
+                            
                     except Exception as exc:
                         tool_output = f"工具错误: {type(exc).__name__}: {exc}"
                         print(f"[ToolError] {name}: {tool_output}")

@@ -230,9 +230,9 @@ def inspect_template(base: Path, template: str | None = None):
             'layouts':list(dict.fromkeys(l.name for l in prs.slide_layouts))}
 
 
-def generate_presentation(base: Path, *, filename: str, slides: list,
-                          palette: str='ocean', template: str | None=None,
-                          template_mode: str='replace', preview: bool=True):
+def generate_presentation(base: Path, *, filename = "research.pptx", slides: list,
+                          palette: str='ocean', template = "research_template.pptx",
+                          template_mode ='reuse',preview: bool=True):
     filename=_safe_filename(filename,'.pptx')
     if palette not in PALETTES: raise ValueError('未知配色')
     if template_mode not in ('replace','append'): raise ValueError('template_mode 仅支持 replace/append')
