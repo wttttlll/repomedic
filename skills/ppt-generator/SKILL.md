@@ -44,4 +44,35 @@ the user's scientific research presentation style.
 - Prevent overlap, clipping and overflow.
 - Preserve the reference style consistently.
 - Never claim success without tool confirmation.
+
+## Academic Research Style
+
+When the user requests an academic or scientific
+presentation similar to the navy-blue reference PPT:
+
+- Use palette: academic_navy.
+- Use the outline layout for the agenda.
+- Use the cover layout for the title slide.
+- Use a full-width navy title bar on content slides.
+- Use a white background and gold accents.
+- Prefer editable shapes, text boxes, and native charts.
+- Use English unless the user specifies otherwise.
+
+## Slide Count Validation
+
+- Respect the exact slide count requested by the user.
+- Create all slide data before calling generate_ppt.
+- Confirm that len(slides) equals the requested count.
+- If the count differs, repair the plan before generating.
+- Verify slides_created and total_slides in the tool result.
+- Do not invent numerical experimental results.
+
+## Template Rules
+
+- Call inspect_ppt_template before using a PPTX template.
+- Passing a template does not guarantee that its
+  existing slide-level visual objects will be reused.
+- For style-only requests, prefer academic_navy layouts.
+- Do not claim exact template reproduction unless
+  the original slide objects were preserved and verified.
   

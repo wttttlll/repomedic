@@ -23,8 +23,9 @@ PALETTES = {
     'forest': ('153D31', '278367', 'F6FAF6', '234238', 'F0B95B'),
     'sunset': ('512B44', 'DD6B55', 'FFF9F5', '463644', 'F1B24A'),
     'minimal': ('182230', '456B8C', 'FFFFFF', '344054', 'E7A94E'),
+    "academic_navy": ("061E55", "243D67", "FFFFFF", "243D67", "FFBC00"),
 }
-LAYOUTS = {'cover','section','bullets','two_column','cards','quote','chart','timeline'}
+LAYOUTS = {"cover","outline","section","bullets","two_column","cards","quote","chart","timeline"}
 MAX_SLIDES = 30
 MAX_TEXT = 3000
 
@@ -171,14 +172,31 @@ def _slide(prs, item, idx, total, palette, use_template, custom_layouts):
         rect(.8,1.2,.12,4.4,accent)
         tx(1.2,1.8,10.7,1.9,title,38,(dark if use_template else 'FFFFFF'),True)
         tx(1.2,4.35,10,1.0,subtitle,21,(ink if use_template else 'D9E6ED'))
+    elif kind == "outline":
+        # Navy title bar
+        rect(0, 0, 13.333, 0.75, dark)
+        tx(4.7, 0.12, 3.9, 0.48,"Outline", 26, "FFFFFF",True, PP_ALIGN.CENTER)
+        sections = _list_of_text(item.get("bullets", []), 5)
+        if not sections:
+            raise ValueError("outline requires 1-5 sections")
+        for i, section in enumerate(sections):
+            y = 1.3 + i * 1.05
+            rect(2.3, y, 0.8, 0.78, accent)
+            rect(3.1, y, 8.2, 0.78, primary)
+            tx(2.3, y + 0.12, 0.8, 0.52,str(i + 1), 24, dark,True, PP_ALIGN.CENTER)
+            tx(3.22, y + 0.14, 7.9, 0.5,section, 18, "FFFFFF", True)
     elif kind=='section':
         if not use_template: rect(0,0,13.333,7.5,dark)
         tx(1.15,2.4,10.8,1.3,title,35,(dark if use_template else 'FFFFFF'),True)
         tx(1.15,4.0,10.8,1.2,subtitle,19,(ink if use_template else 'D9E6ED'))
     else:
-        rect(.75,.73,.12,.64,primary)
-        tx(1.03,.62,11.6,.86,title,28,dark,True)
-        rect(.8,1.58,11.72,.018,accent)
+        if palette == PALETTES["academic_navy"]:
+            rect(0, 0, 13.333, 0.76, dark)
+            tx(0.65, 0.10, 12.0, 0.51,title, 25, "FFFFFF", True)
+        else:
+            rect(.75, .73, .12, .64, primary)
+            tx(1.03, .62, 11.6, .86,title, 28, dark, True)
+            rect(.8, 1.58, 11.72, .018,accent)
         if kind=='bullets':
             bl(item.get('bullets',[]),1.05,2.0,11,4.5,22)
         elif kind=='two_column':
@@ -230,9 +248,16 @@ def inspect_template(base: Path, template: str | None = None):
             'layouts':list(dict.fromkeys(l.name for l in prs.slide_layouts))}
 
 
-def generate_presentation(base: Path, *, filename = "research.pptx", slides: list,
-                          palette: str='ocean', template = "research_template.pptx",
-                          template_mode ='reuse',preview: bool=True):
+def generate_presentation(
+    base: Path,
+    *,
+    filename: str,
+    slides: list,
+    palette: str = "ocean",
+    template: str | None = None,
+    template_mode: str = "replace",
+    preview: bool = True
+):
     filename=_safe_filename(filename,'.pptx')
     if palette not in PALETTES: raise ValueError('未知配色')
     if template_mode not in ('replace','append'): raise ValueError('template_mode 仅支持 replace/append')
