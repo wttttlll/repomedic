@@ -291,3 +291,19 @@ def _configure_reference_fill_v4():
         },"required":["title"],"additionalProperties":False}}
 
 _configure_reference_fill_v4()
+
+# v5: expose image_text and image source parameters to Agent.
+_ppt_slide_props = next(t["function"] for t in TOOLS
+    if t.get("function",{}).get("name")=="generate_ppt")["parameters"]["properties"]["slides"]["items"]["properties"]
+_ppt_slide_props["layout"]["enum"] = list(dict.fromkeys(_ppt_slide_props["layout"]["enum"] + ["image_text"]))
+_ppt_slide_props["image"] = {
+    "type":"object",
+    "properties":{
+        "source":{"type":"string","enum":["auto","local","web","ai"]},
+        "path":{"type":"string"},
+        "query":{"type":"string"},
+        "prompt":{"type":"string"},
+        "factual":{"type":"boolean"}
+    },
+    "additionalProperties":False
+}

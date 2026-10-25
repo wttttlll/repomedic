@@ -11,7 +11,7 @@ import re
 import uuid
 
 from pptx import Presentation
-from integrations.ppt_layout_engine import prepare_slide
+from integrations.ppt.layout_engine import prepare_slide
 from pptx.dml.color import RGBColor
 from pptx.enum.text import MSO_AUTO_SIZE, PP_ALIGN, MSO_ANCHOR
 from pptx.enum.dml import MSO_LINE_DASH_STYLE
@@ -20,7 +20,7 @@ from pptx.util import Inches, Pt
 
 MAX_SLIDES = 30
 ALLOWED_LAYOUTS = {"cover", "outline", "section", "bullets", "two_column",
-                   "cards", "quote", "chart", "timeline", "table", "info_blocks"}
+                   "cards", "quote", "chart", "timeline", "table", "info_blocks", "image_text"}
 
 
 def _safe_name(value):
@@ -258,7 +258,7 @@ def _remove_slide(prs, idx):
     prs.slides._sldIdLst.remove(slide_id)
 
 
-def _fill(slide, item, style, width, height, warnings, index):
+def _fill(slide, item, style, width, height, warnings, index, base=None, provenance=None):
     if not isinstance(item, dict):
         raise ValueError("slides 的每一项必须是对象")
     kind = item.get("layout", "bullets")
@@ -289,6 +289,8 @@ def _fill(slide, item, style, width, height, warnings, index):
     )
     top = 1.6
     available_h = max(1.2, height - top - .7)
+    if kind == "image_text":
+        return _fill_image_text(slide,item,style,width,height,base,warnings,index,provenance)
     if kind == "table" and "table" not in item:
         raise ValueError(f"第 {index} 页 layout=table，但未传入 table.headers 和 table.rows；禁止生成占位文字")
     if kind == "table" or "table" in item:
@@ -326,7 +328,6 @@ def _fill(slide, item, style, width, height, warnings, index):
         if len(lines) > 9 or sum(len(s) for s in lines) > 700:
             raise ValueError(f"第 {index} 页内容过多，请拆页，避免破坏固定字号")
         if kind == "bullets" and lines:
-            from math import ceil
             n = len(lines)
             gap = .18
             box_h = (available_h - gap*(n-1))/n
@@ -351,6 +352,29 @@ def _fill(slide, item, style, width, height, warnings, index):
         if kind == "timeline":
             warnings.append(f"第 {index} 页时间线暂以可编辑文字呈现")
 
+
+
+def _fill_image_text(slide,item,style,width,height,base,warnings,index,provenance):
+    from integrations.ppt.image_manager import acquire_image
+    from PIL import Image
+    from pptx.util import Inches
+    spec=item.get("image")
+    if not spec: raise ValueError(f"第 {index} 页 image_text 缺少 image")
+    result=acquire_image(base,spec,base/"output"/"ppt"/"images")
+    top=1.6; available_h=max(1.2,height-top-.7)
+    left=.85; gap=.35; content_w=width-1.7
+    text_w=content_w*.46; image_w=content_w-text_w-gap
+    lines=item.get("bullets") or []
+    if not isinstance(lines,list) or len(lines)>7 or sum(len(str(x)) for x in lines)>650:
+        raise ValueError("图文页文字过多，请拆页")
+    _add_text(slide,"\\n\\n".join("• "+str(x) for x in lines),left,top,text_w,available_h,style["body"],size=min(style["body"].get("size") or 18,19))
+    with Image.open(result["path"]) as im: iw,ih=im.size
+    pic_w=min(image_w,available_h*iw/ih);pic_h=pic_w*ih/iw
+    x=left+text_w+gap+(image_w-pic_w)/2
+    y=top+(available_h-pic_h)/2
+    slide.shapes.add_picture(result["path"],Inches(x),Inches(y),width=Inches(pic_w),height=Inches(pic_h))
+    provenance.append({"slide":index,**{k:v for k,v in result.items() if k!="path"}})
+    if result["source"]=="commons": warnings.append(f"第 {index} 页网络图片需核实授权与署名")
 
 def generate_from_reference(*, base, filename, slides,
                             template_name="base.pptx",
@@ -381,13 +405,16 @@ def generate_from_reference(*, base, filename, slides,
     height = prs.slide_height / Inches(1)
 
     # Create all output pages before removing original pages, preserving source objects.
+    provenance = []
     original_count = len(prs.slides)
     for i, original_item in enumerate(slides, 1):
         item = prepare_slide(original_item)
         layout_type = item.get("layout", "bullets") if isinstance(item, dict) else "bullets"
         source = prs.slides[4 if layout_type == "table" or (isinstance(item, dict) and "table" in item) else 2]
         generated = _clone_slide(prs, source)
-        _fill(generated, item, style, width, height, warnings, i)
+        if isinstance(original_item,dict) and original_item.get("image"):
+            item = {**item, "image":original_item["image"], "layout":"image_text"}
+        _fill(generated, item, style, width, height, warnings, i, base, provenance)
 
     for _ in range(original_count):
         _remove_slide(prs, 0)
@@ -413,4 +440,5 @@ def generate_from_reference(*, base, filename, slides,
         "reference": reference_name,
         "warnings": warnings,
         "preview": [],
+        "image_sources": provenance,
     }

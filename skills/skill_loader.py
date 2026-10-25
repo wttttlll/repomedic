@@ -23,7 +23,20 @@ AUTO_TRIGGERS: dict[str, tuple[str, ...]] = {
         "\u8c03\u8bd5",             # 调试
         "\u4ee3\u7801\u8bca\u65ad",  # 代码诊断
         "\u6d4b\u8bd5\u5931\u8d25", # 测试失败
-    )
+    ),
+    "academic-paper-writer": (
+            "写论文",
+            "撰写论文",
+            "学术论文",
+            "论文大纲",
+            "文献综述",
+            "paper writing",
+            "research paper",
+    ),
+    "ppt-generator": (
+                "做ppt",
+                "制作ppt",
+        ),
 }
 
 

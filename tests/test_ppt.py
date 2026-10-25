@@ -2,7 +2,7 @@
 from pathlib import Path
 
 from pptx import Presentation
-from integrations.ppt_generator import generate_presentation
+from integrations.ppt.generator import generate_presentation
 
 
 def test_generate_ppt():

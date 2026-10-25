@@ -14,7 +14,9 @@ def prepare_slide(item):
     result=dict(item)
     mode=result.get("layout", "auto")
     if mode in (None,"auto"):
-        if result.get("table"):
+        if result.get("image"):
+            mode="image_text"
+        elif result.get("table"):
             mode="table"
         elif result.get("blocks"):
             mode="info_blocks"

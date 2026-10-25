@@ -1,10 +1,21 @@
-.idea/
-.venv/
-.venv_agent/
+# Python
 __pycache__/
+*.py[cod]
+.venv/
 .pytest_cache/
-*.pyc
 
+# Environment
 .env
 .env.*
 !.env.example
+
+# Generated PPT
+output/ppt/
+*_preview/
+
+# Local backups
+*.bak
+*.before_ppt_v4.bak
+
+# Runtime data
+data/backups/

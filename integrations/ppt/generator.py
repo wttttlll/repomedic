@@ -13,7 +13,7 @@ from pathlib import Path
 from pptx import Presentation
 from pptx.chart.data import CategoryChartData
 from pptx.enum.chart import XL_CHART_TYPE, XL_LEGEND_POSITION
-from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
+from pptx.enum.text import PP_ALIGN
 from pptx.dml.color import RGBColor
 from pptx.util import Inches, Pt
 from pptx.enum.shapes import MSO_SHAPE
@@ -271,7 +271,7 @@ def generate_presentation(
     if template_mode == "reference_fill":
         if template != "base.pptx":
             raise ValueError("reference_fill 必须使用 base.pptx")
-        from integrations.ppt_template_filler import (generate_from_reference,)
+        from integrations.ppt.template_filler import (generate_from_reference, )
 
         return generate_from_reference(
             base=base,

@@ -7,7 +7,7 @@ import shutil
 import uuid
 from pathlib import Path
 from typing import Callable
-from integrations.ppt_generator import (
+from integrations.ppt.generator import (
     inspect_template,
     generate_presentation,
 )
