@@ -1,5 +1,5 @@
 # repomedic
-代码修复mini-agent
+智能助手mini-agent
 ## 项目结构
 - `benchmarks/` - 性能基准测试
 - `context/` - 上下文管理
