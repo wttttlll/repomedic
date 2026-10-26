@@ -94,16 +94,13 @@ class SkillLoader:
 
     def load(self, info: SkillInfo) -> LoadedSkill:
         """按需读取 Skill 的完整指令。"""
-
         path = info.path
-
         if (
             path.is_symlink()
             or not path.resolve().is_relative_to(self.root)
             or path.stat().st_size > MAX_SKILL_BYTES
         ):
             raise ValueError("不安全的技能路径或技能文件过大")
-
         name, description = _read_header(path)
 
         if name != info.name:

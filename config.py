@@ -5,7 +5,7 @@ BASE = Path(__file__).resolve().parent
 ROOT = (BASE / "demo_repo").resolve()
 
 MAX_FILE_BYTES = 32 * 1024
-MAX_STEPS = 10
+MAX_STEPS = 30
 MAX_REPAIR_ATTEMPTS = 3
 MAX_DELEGATIONS_PER_TASK = 2
 SUBAGENT_MAX_STEPS = 4

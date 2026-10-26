@@ -3,7 +3,6 @@ from contextlib import contextmanager
 class HookDenied(PermissionError):
     """工具调用被 Hook拒绝。"""
 
-
 class HookManager:
     def __init__(self, logger=print):
         self.logger = logger
