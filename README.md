@@ -1,4 +1,4 @@
-# repomedic
+# mini-agent
 智能助手mini-agent
 ## 项目结构
 - `benchmarks/` - 性能基准测试
