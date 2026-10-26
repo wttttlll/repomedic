@@ -1,4 +1,4 @@
-"""RepoMedic 主 Agent Loop：管理消息与轮次，业务状态下沉到各个模块。"""
+"""主 Agent Loop：管理消息与轮次，业务状态下沉到各个模块。"""
 from __future__ import annotations
 
 import json
@@ -11,9 +11,30 @@ from core.repair import RepairState
 from core.tool_dispatcher import ToolDispatcher
 
 
+LOAD_SKILL_TOOL = {
+    "type": "function",
+    "function": {
+        "name": "load_skill",
+        "description": (
+            "按名称加载一个可用 Skill 的完整 SKILL.md 指令。"
+            "当任务符合 Available Skills 中某项描述时调用。"
+            "如果没有合适的 Skill，不需要调用。"
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Skill 的名称",
+                }
+            },
+            "required": ["name"],
+            "additionalProperties": False,
+        },
+    },
+}
 @dataclass(frozen=True)
 class AgentServices:
-    """显式注入依赖；测试可继续 patch agent.py 的旧入口。"""
     root: Path
     system_prompt: str
     tools: list[dict]
@@ -47,20 +68,19 @@ def run_agent(
     *,
     services: AgentServices,
 ) -> str:
-    """原 `agent.run_agent` 同语义的同步 Agent Loop。"""
+
     messages = sessions.load(session_id)
     if not messages or messages[0].get("role") != "system":
         raise ValueError("Session 缺少 system 消息")
     messages[0]["content"] = services.system_prompt
     messages.append({"role": "user", "content": task})
 
-    active_skill = services.skill_loader.select(task)
-    skill_context = None
-    if active_skill is not None:
-        skill_context = services.format_skill_context(active_skill)
-        print(f"[Skill] 加载： {active_skill.name}")
+    skill_catalog = services.skill_loader.format_skill_catalog()
+
+    if skill_catalog:
+        print("[Skill] 已发现可用 Skills，等待 Agent 选择")
     else:
-        print("[Skill] 无匹配的skill")
+        print("[Skill] 未发现可用 Skill")
 
     # 模型看不到未授权的写工具；Runtime 中还有独立的二次校验。
     available_tools = [
@@ -72,6 +92,8 @@ def run_agent(
            )
         and (mcp_tools is None or tool["function"]["name"] not in services.mcp_remote_tools)
     ]
+    if skill_catalog:
+        available_tools.append(LOAD_SKILL_TOOL)
     if (mcp_tools is None) != (mcp_executor is None):
         raise ValueError("MCP 工具定义和执行器必须同时提供")
     if mcp_tools is not None:
@@ -118,13 +140,13 @@ def run_agent(
                 print(f"[Compression] 摘要失败，回退裁剪：{exc}")
                 context_messages = services.context.build(messages)
 
-            if skill_context is not None:
+            if skill_catalog:
                 if not context_messages or context_messages[0].get("role") != "system":
                     raise RuntimeError("缺少 system 消息")
                 context_messages = list(context_messages)
                 context_messages[0] = {
                     **context_messages[0],
-                    "content": context_messages[0]["content"] + "\n\n" + skill_context,
+                    "content": context_messages[0]["content"] + "\n\n" + skill_catalog,
                 }
 
             print(
@@ -221,13 +243,23 @@ def run_agent(
                         if not isinstance(args, dict):
                             raise ValueError("工具参数必须是 JSON 对象")
 
-                        raw_output = dispatcher.dispatch(name, args, allow_write=allow_write)
-                        tool_output = (
-                            raw_output
-                            if isinstance(raw_output, str)
-                            else json.dumps(raw_output, ensure_ascii=False)
-                        )
+                        if name == "load_skill":
+                            skill_name = args.get("name")
+                            if not isinstance(skill_name, str):
+                                raise ValueError("Skill 名称必须是字符串")
+                            # 根据名称读取完整 SKILL.md
+                            loaded_skill = services.skill_loader.load_by_name(skill_name)
+                            # 将完整 Skill 指令作为工具结果返回
+                            tool_output = services.format_skill_context(loaded_skill)
+                            print(f"[Skill] 按需加载：{loaded_skill.name}")
 
+                        else:
+                            raw_output = dispatcher.dispatch(name,args,allow_write=allow_write,)
+                            tool_output = (
+                                raw_output
+                                if isinstance(raw_output, str)
+                                else json.dumps(raw_output,ensure_ascii=False,)
+                            )
                         if name == "write_file":
                             last_test = repair.after_write(
                                 execute_tests=services.execute_tests,
@@ -275,7 +307,7 @@ def run_agent(
             if limit_reached:
                 if infrastructure_issue is not None:
                     return finish(
-                        "【验证环境异常：修复未完成】\n"
+                        "[验证环境异常：修复未完成]\n"
                         + rollback(
                             f"测试环境返回 {infrastructure_issue}，"
                             "不能据此认定代码存在 Bug"
@@ -284,7 +316,7 @@ def run_agent(
                         + json.dumps(repair.last_test, ensure_ascii=False)
                     )
                 return finish(
-                    "【自动修复失败】\n"
+                    "[自动修复失败]\n"
                     + rollback(f"连续 {repair.write_attempts} 次修改未通过测试")
                     + "\n最后一次测试结果：\n"
                     + json.dumps(repair.last_test, ensure_ascii=False)

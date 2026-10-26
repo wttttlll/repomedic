@@ -1,6 +1,8 @@
-"""RepoMedic  渐进式披露，本地技能注册表与延迟指令加载器。
-仅扫描开发者控制的本地 SKILL.md 文件。技能用于指导大语言模型，但不会授予任何能力；
-Python 工具权限仍然是权威来源。这是一个仅使用标准库的 YAML 前置元数据子集实现。
+"""RepoMedic Skill 注册表与渐进式加载器。
+
+启动时仅发现本地 Skill 元数据。
+完整 SKILL.md 指令由 Agent 通过 load_skill 工具按需读取。
+Skill 不授予额外的 Python 工具权限。
 """
 
 from __future__ import annotations
@@ -9,35 +11,9 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+
 MAX_SKILL_BYTES = 32 * 1024
 SKILL_NAME = re.compile(r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*\Z")
-
-# 规则路由：只有 repo-debug 是自动激活的。其他技能始终可以通过 @技能名称 显式激活。
-# 基于模型的后续路由将在未来版本中添加。
-AUTO_TRIGGERS: dict[str, tuple[str, ...]] = {
-    "repo-debug": (
-        "bug", "debug", "traceback",
-        "\u4fee\u590d",             # 修复
-        "\u6392\u67e5",             # 排查
-        "\u62a5\u9519",             # 报错
-        "\u8c03\u8bd5",             # 调试
-        "\u4ee3\u7801\u8bca\u65ad",  # 代码诊断
-        "\u6d4b\u8bd5\u5931\u8d25", # 测试失败
-    ),
-    "academic-paper-writer": (
-            "写论文",
-            "撰写论文",
-            "学术论文",
-            "论文大纲",
-            "文献综述",
-            "paper writing",
-            "research paper",
-    ),
-    "ppt-generator": (
-                "做ppt",
-                "制作ppt",
-        ),
-}
 
 
 @dataclass(frozen=True)
@@ -55,14 +31,17 @@ class LoadedSkill:
 
 
 def _read_header(path: Path) -> tuple[str, str]:
-    """仅读取类 YAML 的前置元数据；无需第三方依赖。"""
+    """只读取 SKILL.md 的前置元数据。"""
+
     if path.stat().st_size > MAX_SKILL_BYTES:
         raise ValueError(f"技能文件过大: {path}")
 
     with path.open("r", encoding="utf-8") as stream:
         if stream.readline().strip() != "---":
             raise ValueError(f"SKILL.md 必须以 --- 开头: {path}")
+
         attributes: dict[str, str] = {}
+
         for _ in range(30):
             line = stream.readline()
             if not line:
@@ -74,12 +53,13 @@ def _read_header(path: Path) -> tuple[str, str]:
             key, separator, value = line.partition(":")
             if not separator:
                 raise ValueError(f"无效的技能头部行: {line.strip()}")
-            attributes[key.strip()] = value.strip().strip("\"'")
+            attributes[key.strip()] = (value.strip().strip("\"'"))
         else:
             raise ValueError(f"技能前置元数据过长: {path}")
 
     name = attributes.get("name", "")
     description = attributes.get("description", "")
+
     if not SKILL_NAME.fullmatch(name):
         raise ValueError(f"无效的技能名称: {name!r}")
     if name != path.parent.name:
@@ -94,10 +74,10 @@ class SkillLoader:
         self.root = Path(root).resolve()
 
     def discover(self) -> list[SkillInfo]:
-        """读取技能的元数据，但不将内容送入大模型"""
+        """扫描本地 Skills，只读取元数据。"""
+
         if not self.root.is_dir():
             return []
-
         result: list[SkillInfo] = []
         for folder in sorted(self.root.iterdir()):
             if not folder.is_dir() or folder.is_symlink():
@@ -109,62 +89,119 @@ class SkillLoader:
                 continue
             name, description = _read_header(path)
             result.append(SkillInfo(name, description, path))
+
         return result
 
     def load(self, info: SkillInfo) -> LoadedSkill:
-        """在需要使用时加载该技能的内容"""
+        """按需读取 Skill 的完整指令。"""
+
         path = info.path
-        if (path.is_symlink() or not path.resolve().is_relative_to(self.root)
-                or path.stat().st_size > MAX_SKILL_BYTES):
+
+        if (
+            path.is_symlink()
+            or not path.resolve().is_relative_to(self.root)
+            or path.stat().st_size > MAX_SKILL_BYTES
+        ):
             raise ValueError("不安全的技能路径或技能文件过大")
+
         name, description = _read_header(path)
+
         if name != info.name:
             raise ValueError("加载前技能元数据已变更")
 
         text = path.read_text(encoding="utf-8")
-
         lines = text.splitlines()
+
         try:
-            end = next(i for i, line in enumerate(lines[1:], 1)
-                       if line.strip() == "---")
+            end = next(
+                i
+                for i, line in enumerate(lines[1:], 1)
+                if line.strip() == "---"
+            )
         except StopIteration as exc:
             raise ValueError("未闭合的技能前置元数据") from exc
+
         body = "\n".join(lines[end + 1:]).strip()
+
         if not body:
             raise ValueError("技能指令体为空")
-        return LoadedSkill(name, description, body)
 
-    def select(self, task: str) -> LoadedSkill | None:
+        return LoadedSkill(
+            name=name,
+            description=description,
+            instructions=body,
+        )
 
-        if not isinstance(task, str):
-            raise TypeError("任务参数必须是字符串")
-        discovered = self.discover()
-        for info in discovered:
-            if re.search(r"(?<![\w-])@" + re.escape(info.name) + r"(?![\w-])",
-                         task, flags=re.IGNORECASE):
-                return self.load(info)
-        lowered = task.casefold()
-        for info in discovered:
-            if any(word in lowered for word in AUTO_TRIGGERS.get(info.name, ())):
-                return self.load(info)
-        return None
+    def format_skill_catalog(self) -> str:
+        """生成供主 Agent 使用的 Skill 元数据目录。"""
+
+        skills = self.discover()
+
+        if not skills:
+            return ""
+
+        lines = [
+            "# Available Skills",
+            "",
+            "以下是当前可用的 Skills。",
+            "这里只提供名称和描述，不包含完整指令。",
+            "",
+            "当任务适合某个 Skill 时，",
+            "请调用 load_skill 工具读取完整指令。",
+            "如果没有合适的 Skill，可以直接完成任务。",
+            "不要虚构不存在的 Skill。",
+            "",
+        ]
+
+        for skill in skills:
+            lines.append(f"- name: {skill.name}")
+            lines.append(f"  description: {skill.description}")
+
+        return "\n".join(lines)
+
+    def load_by_name(self, name: str) -> LoadedSkill:
+        """根据 Skill 名称加载完整指令。"""
+
+        for skill in self.discover():
+            if skill.name == name:
+                return self.load(skill)
+
+        raise ValueError(f"未知的 Skill: {name}")
 
 
 def format_skill_context(skill: LoadedSkill) -> str:
-    """追加到现有系统指令之后；绝不扩展工具权限。"""
+    """格式化 Skill 指令，不扩展工具权限。"""
+
     return (
         "\n\n[RepoMedic 技能: " + skill.name + "]\n"
-        "本技能仅描述任务工作流程。它不授予写入权限、文件访问权限或跳过验证的权限。"
+        "本技能仅描述任务工作流程。"
+        "它不授予写入权限、文件访问权限"
+        "或跳过验证的权限。"
         "Python 运行时强制执行所有安全规则。\n"
-        + skill.instructions + "\n[/RepoMedic 技能]\n"
+        + skill.instructions
+        + "\n[/RepoMedic 技能]\n"
     )
+
 
 if __name__ == "__main__":
     registry = SkillLoader(Path(__file__).resolve().parent)
+
     found = registry.discover()
-    print("发现的技能:", [s.name for s in found])
-    sample_task = "\u4fee\u4e00\u4e0bbug"
-    chosen = registry.select(sample_task)
-    print("示例任务的选中结果:", chosen.name if chosen else "无")
-    if chosen:
-        print("指令预览:", chosen.instructions[:120].replace("\n", " "))
+
+    print(
+        "发现的技能:",
+        [skill.name for skill in found],
+    )
+
+    print("\n=== Skill Catalog ===")
+    print(registry.format_skill_catalog())
+
+    if found:
+        chosen = registry.load_by_name(found[0].name)
+
+        print("\n=== 按需加载测试 ===")
+        print("加载的 Skill:", chosen.name)
+        print(
+            "指令预览:",
+            chosen.instructions[:120].replace("\n", " "),
+        )

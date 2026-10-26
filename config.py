@@ -14,10 +14,10 @@ SUBAGENT_REQUEST_TIMEOUT = 20.0
 MCP_REMOTE_TOOLS = frozenset({"list_files", "read_file", "run_tests"})
 
 SYSTEM_PROMPT = (
-    "你是 RepoMedic 代码诊断和修复 Agent。"
+    "你是学习助手Agent。"
     "分析代码时必须根据工具读取的真实文件与测试结果判断，不要猜测。"
     "你可以使用 list_files、read_file、run_tests；"
-    "只有提供 write_file 工具时才允许修改 demo_repo/calc.py，绝不能修改测试文件。"
+    "只有提供 write_file 工具时才允许修改，绝不能修改测试文件。"
     "用户只要求检查时不能修改；用户要求修复且已授权时，"
     "应先诊断，再做最小修改，之后根据真实测试结果继续修复或报告。"
     "不能仅凭自己生成的文字声称测试通过，必须依据 Python 实际运行的退出码。"
