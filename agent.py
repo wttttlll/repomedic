@@ -29,7 +29,13 @@ from config import (
 from context.context_compressor import ContextCompressor
 from context.context_manager import ContextManager
 from core.repair import restore_file
-from core.runner import AgentServices, run_agent as _run_agent_loop
+from core.runner import (
+    AgentServices,
+    ResumeBlocked,
+    ResumeError,
+    resume_agent as _resume_agent_loop,
+    run_agent as _run_agent_loop,
+)
 from core.test_runner import run_unittest
 from core.verification import checked_test_result as _verify_result
 from core.verification import execute_tests as _docker_execute_tests
@@ -39,6 +45,7 @@ from skills.skill_loader import SkillLoader, format_skill_context
 from subagents.test_analyst import TestAnalystSubAgent
 from tools.definitions import TOOLS
 from tools.local_tools import run_tool as _run_local_tool
+from state import ApprovalError, SQLiteStateStore, StateManager
 
 SKILL_LOADER = SkillLoader(BASE / "skills")
 HOOKS = HookManager()
@@ -49,7 +56,9 @@ COMPRESSOR = ContextCompressor(
     total_budget=40_000,
     max_summary_chars=1_200,
 )
+STATE_STORE = SQLiteStateStore(BASE / "data" / "state_data" / "agent_state.db")
 
+STATE_MANAGER = StateManager(STATE_STORE)
 
 # 兼容层：这些 wrapper 读取 agent 模块的当前全局引用。
 # 现有单元测试对 agent.ROOT / agent.run_tool / agent.execute_tests 的 patch 仍能生效。
@@ -77,17 +86,9 @@ def run_tool(name: str, args: dict, allow_write: bool = False) -> str:
     )
 
 
-def run_agent(
-    task: str,
-    client,
-    sessions: SessionManager,
-    session_id: str,
-    allow_write: bool = False,
-    mcp_tools: list[dict] | None = None,
-    mcp_executor=None,
-) -> str:
-    """向后兼容的 Agent API；真正循环由 core.runner.run_agent 执行。"""
-    services = AgentServices(
+def _build_services() -> AgentServices:
+    """每次调用时读取模块全局，保持测试对 agent.* 的 patch 生效。"""
+    return AgentServices(
         root=ROOT,
         system_prompt=SYSTEM_PROMPT,
         tools=TOOLS,
@@ -109,6 +110,18 @@ def run_agent(
         subagent_max_tool_calls=SUBAGENT_MAX_TOOL_CALLS,
         subagent_request_timeout=SUBAGENT_REQUEST_TIMEOUT,
     )
+
+
+def run_agent(
+    task: str,
+    client,
+    sessions: SessionManager,
+    session_id: str,
+    allow_write: bool = False,
+    mcp_tools: list[dict] | None = None,
+    mcp_executor=None,
+) -> str:
+    """向后兼容的 Agent API；真正循环由 core.runner.run_agent 执行。"""
     return _run_agent_loop(
         task=task,
         client=client,
@@ -117,8 +130,104 @@ def run_agent(
         allow_write=allow_write,
         mcp_tools=mcp_tools,
         mcp_executor=mcp_executor,
-        services=services,
+        services=_build_services(),
+        state_manager=STATE_MANAGER,
     )
+
+
+def resume_agent(
+    run_id: str,
+    client,
+    sessions: SessionManager,
+    allow_write: bool | None = None,
+    mcp_tools: list[dict] | None = None,
+    mcp_executor=None,
+) -> str:
+    """恢复已有 Run（同一个 run_id），不重新开始任务。
+
+    无法安全恢复时抛出 ResumeBlocked，并把 Run 标记为
+    WAITING_APPROVAL；状态不可恢复时抛出 ResumeError。
+    """
+    return _resume_agent_loop(
+        run_id=run_id,
+        client=client,
+        sessions=sessions,
+        allow_write=allow_write,
+        mcp_tools=mcp_tools,
+        mcp_executor=mcp_executor,
+        services=_build_services(),
+        state_manager=STATE_MANAGER,
+    )
+
+
+def _load_run_state(run_id: str):
+    try:
+        state = STATE_MANAGER.load(run_id)
+    except (ValueError, KeyError, TypeError) as exc:
+        raise ResumeError(
+            run_id, f"运行状态数据损坏：{exc}"
+        ) from exc
+    if state is None:
+        raise ResumeError(run_id, "找不到运行记录")
+    return state
+
+
+def confirm_tool_executed(
+    run_id: str,
+    call_id: str,
+    result: str,
+    *,
+    verified: bool = False,
+    success: bool = True,
+):
+    """人工确认工具已执行并补记结果。
+
+    write_file 会校验目标文件内容与备份/验证信息；
+    generate_ppt、MCP 写工具、Shell/未知工具必须显式 verified=True。
+    """
+    state = _load_run_state(run_id)
+    STATE_MANAGER.confirm_tool_executed(
+        state,
+        call_id,
+        result,
+        root=ROOT,
+        verified=verified,
+        success=success,
+    )
+    return state
+
+
+def confirm_tool_not_executed(
+    run_id: str,
+    call_id: str,
+    *,
+    verified: bool = False,
+    expected_content: str | None = None,
+):
+    """人工确认工具未执行，允许后续 Resume 安全重试。
+
+    write_file 可用 expected_content 校验工作区；无法核对副作用的工具
+    必须显式 verified=True。
+    """
+    state = _load_run_state(run_id)
+    STATE_MANAGER.confirm_tool_not_executed(
+        state,
+        call_id,
+        root=ROOT,
+        verified=verified,
+        expected_content=expected_content,
+    )
+    return state
+
+
+def abandon_resume(
+    run_id: str,
+    reason: str = "人工放弃恢复",
+):
+    """放弃恢复，不改动工作区，保留 Checkpoint/Tool Journal 审计数据。"""
+    state = _load_run_state(run_id)
+    STATE_MANAGER.abandon(state, reason)
+    return state
 
 
 def main() -> None:

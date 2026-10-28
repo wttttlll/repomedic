@@ -22,4 +22,5 @@ output/ppt/
 
 # Runtime data
 data/backups/
+data/state_data/
 templates
