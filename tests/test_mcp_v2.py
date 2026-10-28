@@ -6,8 +6,9 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
-from integrations.test_runner import run_unittest
-from integrations.mcp_bridge import to_deepseek_tools, test_result_to_json
+from core.test_runner import run_unittest
+from repomedic_mcp.bridge import test_result_to_json as _test_result_to_json
+from repomedic_mcp.bridge import to_deepseek_tools
 
 
 def fake_tool(name: str) -> SimpleNamespace:
@@ -87,15 +88,15 @@ class MCPV2Tests(unittest.TestCase):
             "test_count": 1, "output": "Ran 1 test in 0.001s\nOK",
         }
         self.assertEqual(
-            json.loads(test_result_to_json(fake_result(good))),
+            json.loads(_test_result_to_json(fake_result(good))),
             good,
         )
         self.assertEqual(
-            json.loads(test_result_to_json(fake_result({"result": good}))),
+            json.loads(_test_result_to_json(fake_result({"result": good}))),
             good,
         )
         with self.assertRaises(ValueError):
-            test_result_to_json(fake_result({
+            _test_result_to_json(fake_result({
                 "status": "PASS", "passed": True, "returncode": 0,
                 "test_count": 0, "output": "No tests",
             }))

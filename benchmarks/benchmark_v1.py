@@ -216,7 +216,7 @@ def run_real_agent(case: Case, repo: Path, workdir: Path) -> tuple[str, list[str
 
 
 def run_case(case: Case, baseline_only: bool) -> dict:
-    from integrations.test_runner import run_unittest
+    from core.test_runner import run_unittest
 
     BENCH_ROOT.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(

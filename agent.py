@@ -30,10 +30,10 @@ from context.context_compressor import ContextCompressor
 from context.context_manager import ContextManager
 from core.repair import restore_file
 from core.runner import AgentServices, run_agent as _run_agent_loop
+from core.test_runner import run_unittest
 from core.verification import checked_test_result as _verify_result
 from core.verification import execute_tests as _docker_execute_tests
 from hooks.hook_manager import HookManager
-from integrations.test_runner import run_unittest
 from sessions.session_manager import SessionManager
 from skills.skill_loader import SkillLoader, format_skill_context
 from subagents.test_analyst import TestAnalystSubAgent
@@ -123,8 +123,9 @@ def run_agent(
 
 def main() -> None:
     import asyncio
-    from integrations.mcp_bridge import run_agent_with_mcp
     from openai import OpenAI
+
+    from repomedic_mcp.bridge import run_agent_with_mcp
 
     key = os.getenv("apikey") or os.getenv("DEEPSEEK_API_KEY")
     if not key:
@@ -180,7 +181,7 @@ def main() -> None:
                 session_id=session_id,
                 allow_write=(mode == "2"),
                 run_agent_fn=run_agent,
-                server_path=BASE / "integrations" / "mcp_server.py",
+                server_path=BASE / "repomedic_mcp" / "server.py",
             ))
             print("\nAgent 最终回答：")
             print(result)

@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from integrations import test_runner
+from core import test_runner
 
 
 class DockerRoutingTests(unittest.TestCase):
@@ -44,7 +44,7 @@ class DockerRoutingTests(unittest.TestCase):
         docker.assert_called_once_with(self.repo)
 
     def test_direct_script_style_import(self):
-        # Works when the MCP Server imports test_runner as an unqualified module.
+        # The shared runner is importable as a standalone module as well.
         path = Path(test_runner.__file__).resolve()
         spec = importlib.util.spec_from_file_location("standalone_test_runner_check", path)
         assert spec is not None and spec.loader is not None

@@ -18,8 +18,8 @@ flowchart TB
     MAIN --> DISPATCH["Tool Dispatcher"]
     DISPATCH --> HOOK["HookManager · PreToolUse / PostToolUse"]
 
-    HOOK -->|"list_files / read_file / run_tests"| BRIDGE["MCP Bridge / Client"]
-    BRIDGE --> SERVER["MCP Server"]
+    HOOK -->|"list_files / read_file / run_tests"| BRIDGE["repomedic_mcp Bridge / Client"]
+    BRIDGE --> SERVER["repomedic_mcp Server"]
     SERVER --> READ["Read-only repository tools"]
     SERVER --> DOCKER["Docker Test Runner"]
 
@@ -58,11 +58,15 @@ flowchart TB
 对 `list_files`、`read_file`、`run_tests`，在启动 `agent.py` 的正常 MCP 模式下：
 
 ```text
-Main Agent → HookManager → MCP Bridge/Client → MCP Server
-                                            ├── list_files
-                                            ├── read_file
-                                            └── run_tests → Docker Test Runner
+Main Agent → HookManager → repomedic_mcp Bridge/Client → repomedic_mcp Server
+                                                       ├── list_files
+                                                       ├── read_file
+                                                       └── run_tests → core.test_runner → Docker
 ```
+
+MCP 协议与 stdio 传输只存在于 `repomedic_mcp/`；`run_tests` 调用稳定核心
+API `core.test_runner.run_unittest`。`integrations/` 不再包含 MCP 兼容层，
+详见 [`MCP_PACKAGE.md`](MCP_PACKAGE.md)。
 
 在单元测试和 Benchmark  模式下，`run_agent()` 也能使用本地 `run_tool()`。这两个执行入口不能误写成“Benchmark V1 也测过 MCP”：**Benchmark V1 当前绕过 MCP Server**。
 
