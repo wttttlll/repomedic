@@ -28,10 +28,7 @@ class StateManager:
         self.checkpoints = checkpoints or CheckpointManager(store)
 
     def create(self, session_id: str, task: str) -> AgentState:
-        state = AgentState(
-            session_id=session_id,
-            task=task,
-        )
+        state = AgentState(session_id=session_id,task=task)
         self.store.create(state)
         return state
 
@@ -49,9 +46,7 @@ class StateManager:
     def resume(self, state: AgentState) -> None:
         """把可恢复状态切回 RUNNING；不创建新的 run_id。"""
         if state.status not in RESUMABLE_STATUSES:
-            raise ValueError(
-                f"Run status {state.status.value} is not resumable"
-            )
+            raise ValueError(f"Run status {state.status.value} is not resumable")
 
         state.status = RunStatus.RUNNING
         state.error = None
@@ -71,17 +66,12 @@ class StateManager:
 
     def _manual_target(self, state: AgentState, call_id: str):
         if state.status not in MANUAL_REVIEW_STATUSES:
-            raise ApprovalError(
-                "只有 WAITING_APPROVAL/INTERRUPTED Run "
-                "可以人工处理"
-            )
+            raise ApprovalError("只有 WAITING_APPROVAL/INTERRUPTED Run可以人工处理")
 
         try:
             checkpoint = self.checkpoints.latest(state.run_id)
         except (ValueError, KeyError, TypeError) as exc:
-            raise ApprovalError(
-                f"Checkpoint 数据损坏：{exc}"
-            ) from exc
+            raise ApprovalError(f"Checkpoint 数据损坏：{exc}") from exc
         if checkpoint is None:
             raise ApprovalError("没有可用的 Checkpoint")
 
@@ -91,9 +81,7 @@ class StateManager:
                 state.run_id, call_id
             )
         except (ValueError, KeyError, TypeError) as exc:
-            raise ApprovalError(
-                f"Tool Journal 数据损坏：{exc}"
-            ) from exc
+            raise ApprovalError(f"Tool Journal 数据损坏：{exc}") from exc
         return call, record
 
     def _clear_current_tool(self, state: AgentState) -> None:
@@ -119,9 +107,7 @@ class StateManager:
                 ToolPhase.UNKNOWN,
             }
         ):
-            raise ApprovalError(
-                "只有 EXECUTING/UNKNOWN 的工具可以补记执行结果"
-            )
+            raise ApprovalError("只有 EXECUTING/UNKNOWN 的工具可以补记执行结果")
 
         name, args = parse_tool_call(call)
         validate_executed(
@@ -133,9 +119,7 @@ class StateManager:
             success=success,
         )
 
-        phase = (
-            ToolPhase.SUCCEEDED if success else ToolPhase.FAILED
-        )
+        phase = (ToolPhase.SUCCEEDED if success else ToolPhase.FAILED)
         state.status = RunStatus.INTERRUPTED
         state.error = None
         self._clear_current_tool(state)
@@ -175,9 +159,7 @@ class StateManager:
                 ToolPhase.FAILED,
             }
         ):
-            raise ApprovalError(
-                "该工具已成功执行，不能按未执行重试"
-            )
+            raise ApprovalError("该工具已成功执行，不能按未执行重试")
 
         name, args = parse_tool_call(call)
         validate_not_executed(
@@ -212,10 +194,7 @@ class StateManager:
     def abandon(self, state: AgentState, reason: str) -> None:
         """放弃恢复：终止 Run，但不修改工作区或删除审计数据。"""
         if state.status not in MANUAL_REVIEW_STATUSES:
-            raise ApprovalError(
-                "只有 WAITING_APPROVAL/INTERRUPTED Run "
-                "可以放弃恢复"
-            )
+            raise ApprovalError("只有 WAITING_APPROVAL/INTERRUPTED Run可以放弃恢复")
 
         state.status = RunStatus.FAILED
         state.error = str(reason)

@@ -11,6 +11,7 @@
 保留原 run_agent / run_tool / execute_tests 等入口，以兼容现有测试和 Benchmark。
 """
 from __future__ import annotations
+
 import os
 
 from config import (
@@ -31,7 +32,6 @@ from context.context_manager import ContextManager
 from core.repair import restore_file
 from core.runner import (
     AgentServices,
-    ResumeBlocked,
     ResumeError,
     resume_agent as _resume_agent_loop,
     run_agent as _run_agent_loop,
@@ -42,14 +42,14 @@ from core.verification import execute_tests as _docker_execute_tests
 from hooks.hook_manager import HookManager
 from sessions.session_manager import SessionManager
 from skills.skill_loader import SkillLoader, format_skill_context
+from state import SQLiteStateStore, StateManager
 from subagents.test_analyst import TestAnalystSubAgent
 from tools.definitions import TOOLS
 from tools.local_tools import run_tool as _run_local_tool
-from state import ApprovalError, SQLiteStateStore, StateManager
 
 SKILL_LOADER = SkillLoader(BASE / "skills")
 HOOKS = HookManager()
-CONTEXT = ContextManager(max_turns=4, max_chars=37_000)
+CONTEXT = ContextManager(max_turns=4, max_chars=37000)
 COMPRESSOR = ContextCompressor(
     memory_dir=BASE / "data" / "summary_data",
     selector=CONTEXT,
@@ -233,7 +233,6 @@ def abandon_resume(
 def main() -> None:
     import asyncio
     from openai import OpenAI
-
     from repomedic_mcp.bridge import run_agent_with_mcp
 
     key = os.getenv("apikey") or os.getenv("DEEPSEEK_API_KEY")

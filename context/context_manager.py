@@ -56,16 +56,14 @@ class ContextManager:
         if pending:
             raise ValueError("工具调用缺少结果，暂不能发送给模型")
 
+
     def build(self, messages: list[dict]) -> list[dict]:
         """构建请求上下文，不修改 Session 的完整历史。"""
 
         if not isinstance(messages, list) or not messages:
             raise ValueError("消息历史不能为空")
 
-        if (
-            not isinstance(messages[0], dict)
-            or messages[0].get("role") != "system"
-        ):
+        if (not isinstance(messages[0], dict) or messages[0].get("role") != "system"):
             raise ValueError("第一条消息必须是 system")
 
         system = messages[0]

@@ -8,6 +8,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Callable
 
+from context.context_compressor import CompressionError
 from core.repair import RepairState
 from core.tool_dispatcher import ToolDispatcher
 from state.checkpoint import RESUMABLE_STATUSES
@@ -445,6 +446,10 @@ def _run_loop(
                     client=client,
                     model=os.getenv("DEEPSEEK_MODEL", "deepseek-flash"),
                 )
+            except CompressionError as exc:
+                # 压缩器已完成安全回退；不能再用裁剪静默丢失关键约束
+                print(f"[Compression] 无法安全回退：{exc}")
+                raise
             except Exception as exc:
                 print(f"[Compression] 摘要失败，回退裁剪：{exc}")
                 context_messages = services.context.build(messages)
@@ -475,6 +480,29 @@ def _run_loop(
                     f"[Token] 输入: {response.usage.prompt_tokens}，"
                     f"输出: {response.usage.completion_tokens}"
                 )
+                record = getattr(
+                    services.compressor, "record_main_usage", None
+                )
+
+                if callable(record):
+                    record(response.usage)
+
+                report_fn = getattr(
+                    services.compressor, "token_report", None
+                )
+                report = report_fn() if callable(report_fn) else None
+
+                if isinstance(report, dict):
+                    print(
+                        "[Token] 累计: 主模型 "
+                        f"{report['main_input']}/"
+                        f"{report['main_output']}，摘要 "
+                        f"{report['summary_input']}/"
+                        f"{report['summary_output']}，"
+                        f"压缩 {report['compactions']} 次，"
+                        f"Micro Compact {report['micro_compactions']} 次，"
+                        f"总计 {report['total_tokens']}"
+                    )
 
             choice = response.choices[0]
             message = choice.message
