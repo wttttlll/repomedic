@@ -1,4 +1,4 @@
-# 个人助手agetn
+# 个人助手agent
 mini-agent
 
 ## 项目结构
