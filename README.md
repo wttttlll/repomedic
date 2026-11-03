@@ -1,5 +1,5 @@
-# repomedic
-代码修复mini-agent
+# 个人助手agetn
+mini-agent
 
 ## 项目结构
 - `benchmarks/` - 性能基准测试
